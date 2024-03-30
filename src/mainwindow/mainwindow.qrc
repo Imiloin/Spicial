@@ -1,0 +1,22 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file alias="editcopy">../../assets/icons/editcopy_48x.png</file>
+        <file alias="editcut">../../assets/icons/editcut_48x.png</file>
+        <file alias="editdelete">../../assets/icons/editdelete_48x.png</file>
+        <file alias="editpaste">../../assets/icons/editpaste_48x.png</file>
+        <file alias="fileclose">../../assets/icons/fileclose_48x.png</file>
+        <file alias="filenew">../../assets/icons/filenew_48x.png</file>
+        <file alias="fileopen">../../assets/icons/fileopen_48x.png</file>
+        <file alias="fileprint">../../assets/icons/fileprint_48x.png</file>
+        <file alias="filesave">../../assets/icons/filesave_48x.png</file>
+        <file alias="filesaveall">../../assets/icons/filesaveall_48x.png</file>
+        <file alias="filesaveas">../../assets/icons/filesaveas_48x.png</file>
+
+        <file alias="parse">../../assets/icons/parse_48x.png</file>
+        <file alias="debug">../../assets/icons/debug_48x.png</file>
+
+        <file alias="circuit">../../assets/icons/circuit_48x.png</file>
+
+        <file alias="spicial">../../assets/icons/spicial.png</file>
+    </qresource>
+</RCC>
