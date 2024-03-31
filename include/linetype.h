@@ -1,5 +1,5 @@
-#ifndef LINETYPE_H
-#define LINETYPE_H
+#ifndef SPICIAL_LINETYPE_H
+#define SPICIAL_LINETYPE_H
 
 #define LINE_TYPE_COMMENT 0
 #define COMPONENT_RESISTOR 1
@@ -21,4 +21,4 @@
 #define ANALYSIS_END 17
 #define ANALYSIS_OPTIONS 18
 
-#endif // LINETYPE_H
+#endif // SPICIAL_LINETYPE_H

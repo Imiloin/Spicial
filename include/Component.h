@@ -1,5 +1,5 @@
-#ifndef COMPONENT_H
-#define COMPONENT_H
+#ifndef SPICIAL_COMPONENT_H
+#define SPICIAL_COMPONENT_H
 
 #include <string>
 #include "linetype.h"
@@ -205,4 +205,4 @@ class CurrentSource : public Component {
     double getACPhase() const;
 };
 
-#endif  // COMPONENT_H
+#endif  // SPICIAL_COMPONENT_H

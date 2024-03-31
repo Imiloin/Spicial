@@ -37,21 +37,14 @@ bison -v -d -o src/parser.cpp src/parser.yy
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <QDebug>
 #include "Circuit.h"
 #include "Component.h"
 #include "linetype.h"
 #include "tokentype.h"
+#include "structs.h"
 
 
-struct Variable {
-    int type;
-    std::vector<std::string> nodes;
-};
-
-struct Option {
-    int type;
-    double value;
-};
 }
 
 /* define input */
@@ -67,13 +60,14 @@ struct Option {
     std::vector<Variable> *var_list;  // variable vector
     struct Option *opt;  // option
     std::vector<Option> *opt_list;  // option vector
+    struct Function *func;  // function
 };
 
 /* assigning data type for tokens and patterns */
 %token<f> FLOAT
 /* %token<s> STRING */
 %token<n> INTEGER
-%token<f> VALUE VALUE_VOLTAGE VALUE_CURRENT VALUE_RESISTANCE VALUE_CAPACITANCE VALUE_INDUCTANCE VALUE_TIME VALUE_LENGTH
+%token<f> VALUE VALUE_VOLTAGE VALUE_CURRENT VALUE_RESISTANCE VALUE_CAPACITANCE VALUE_INDUCTANCE VALUE_TIME VALUE_LENGTH VALUE_FREQUENCY
 
 // component
 %token<s> RESISTOR CAPACITOR INDUCTOR VCVS CCCS VCCS CCVS VOLTAGE_SOURCE CURRENT_SOURCE
@@ -95,12 +89,14 @@ struct Option {
 %token VAR_TYPE_VOLTAGE_REAL VAR_TYPE_VOLTAGE_IMAG VAR_TYPE_VOLTAGE_MAG VAR_TYPE_VOLTAGE_PHASE VAR_TYPE_VOLTAGE_DB
 %token VAR_TYPE_CURRENT_REAL VAR_TYPE_CURRENT_IMAG VAR_TYPE_CURRENT_MAG VAR_TYPE_CURRENT_PHASE VAR_TYPE_CURRENT_DB
 
+%token FUNC_TYPE_SIN FUNC_TYPE_PULSE
+
 %token COMMA LPAREN RPAREN
 
 %token END EOL
 
 
-%type<f> value value_voltage value_current value_resistance value_capacitance value_inductance value_time value_length
+%type<f> value value_voltage value_current value_resistance value_capacitance value_inductance value_time value_length value_frequency
 %type<n> analysis_type ac_type var_type
 %type<f> ic_param_voltage ic_param_current
 %type<s> node
@@ -109,6 +105,7 @@ struct Option {
 %type<var_list> variable_list
 %type<opt> option
 %type<opt_list> option_list
+%type<func> function function_sin function_pulse
 
 %{
 extern int yylex(yy::Parser::semantic_type *yylval,
@@ -182,28 +179,28 @@ component_inductor: INDUCTOR node node value_inductance ic_param_current
 
 component_vcvs: VCVS node node node node value
     {
-        printf("[Component] Dependent Source(VCVS) Name(%s) N+(%s) N-(%s) NC+(%s) NC-(%s) Value(%f)\n", $1, $2, $3, $4, $5, $6);
+        printf("[Component] Dependent Source(VCVS) Name(%s) N+(%s) N-(%s) NC+(%s) NC-(%s) Value(%e)\n", $1, $2, $3, $4, $5, $6);
         circuit->parseVCVS($1, $2, $3, $4, $5, $6);
     }
 ;
 
 component_cccs: CCCS node node node value
     {
-        printf("[Component] Dependent Source(CCCS) Name(%s) N+(%s) N-(%s) NC+(%s) Value(%f)\n", $1, $2, $3, $4, $5);
+        printf("[Component] Dependent Source(CCCS) Name(%s) N+(%s) N-(%s) NC+(%s) Value(%e)\n", $1, $2, $3, $4, $5);
         circuit->parseCCCS($1, $2, $3, $4, $5);
     }
 ;
 
 component_vccs: VCCS node node node node value
     {
-        printf("[Component] Dependent Source(VCCS) Name(%s) N+(%s) N-(%s) NC+(%s) NC-(%s) Value(%f)\n", $1, $2, $3, $4, $5, $6);
+        printf("[Component] Dependent Source(VCCS) Name(%s) N+(%s) N-(%s) NC+(%s) NC-(%s) Value(%e)\n", $1, $2, $3, $4, $5, $6);
         circuit->parseVCCS($1, $2, $3, $4, $5, $6);
     }
 ;
 
 component_ccvs: CCVS node node node value
     {
-        printf("[Component] Dependent Source(CCVS) Name(%s) N+(%s) N-(%s) NC+(%s) Value(%f)\n", $1, $2, $3, $4, $5);
+        printf("[Component] Dependent Source(CCVS) Name(%s) N+(%s) N-(%s) NC+(%s) Value(%e)\n", $1, $2, $3, $4, $5);
         circuit->parseCCVS($1, $2, $3, $4, $5);
     }
 ;
@@ -237,6 +234,21 @@ component_voltage_source: VOLTAGE_SOURCE node node value_voltage
     {
         printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f) Phase(%f)\n", $1, $2, $3, $5, $7, $8);
         circuit->parseVoltageSource($1, $2, $3, $5, $7, $8);
+    }
+    | VOLTAGE_SOURCE node node function
+    {
+        switch ($4->type) {
+            case TOKEN_FUNC_SIN:
+                printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) Sin Function(OffsetVolt(%f) Amplitude(%f) Freq(%e) DelayTime(%e) DampingFactor(%e) PhaseDelay(%f))\n", $1, $2, $3, $4->values[0], $4->values[1], $4->values[2], $4->values[3], $4->values[4], $4->values[5]);
+                circuit->parseVoltageSource($1, $2, $3, *$4);
+                break;
+            case TOKEN_FUNC_PULSE:
+                printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) Pulse Function(LowVolt(%f) HightVolt(%f) Delaytime(%e) Risetime(%e) Falltime(%e) PulseWidth(%e) Period(%e))\n", $1, $2, $3, $4->values[0], $4->values[1], $4->values[2], $4->values[3], $4->values[4], $4->values[5], $4->values[6]);
+                circuit->parseVoltageSource($1, $2, $3, *$4);
+                break;
+            default:
+                printf("!No such function type\n");
+        }
     }
 ;
 
@@ -342,6 +354,16 @@ value_length: value
     }
 ;
 
+value_frequency: value
+    {
+        $$ = $1;
+    }
+    | VALUE_FREQUENCY
+    {
+        $$ = $1;
+    }
+;
+
 ic_param_voltage: IC_EQUAL value_voltage
     {
         $$ = $2;
@@ -351,6 +373,68 @@ ic_param_voltage: IC_EQUAL value_voltage
 ic_param_current: IC_EQUAL value_current
     {
         $$ = $2;
+    }
+;
+
+function: function_sin
+    {
+        $$ = $1;
+    }
+    | function_pulse
+    {
+        $$ = $1;
+    }
+;
+
+function_sin: FUNC_TYPE_SIN value_voltage value_voltage value_frequency
+    {
+        $$ = new Function{ TOKEN_FUNC_SIN, { $2, $3, $4, 0, 0, 0 } };
+    }
+    | FUNC_TYPE_SIN LPAREN value_voltage value_voltage value_frequency RPAREN
+    {
+        $$ = new Function{ TOKEN_FUNC_SIN, { $3, $4, $5, 0, 0, 0 } };
+    }
+    | FUNC_TYPE_SIN value_voltage value_voltage value_frequency value_time
+    {
+        $$ = new Function{ TOKEN_FUNC_SIN, { $2, $3, $4, $5, 0, 0 } };
+    }
+    | FUNC_TYPE_SIN LPAREN value_voltage value_voltage value_frequency value_time RPAREN
+    {
+        $$ = new Function{ TOKEN_FUNC_SIN, { $3, $4, $5, $6, 0, 0 } };
+    }
+    | FUNC_TYPE_SIN value_voltage value_voltage value_frequency value_time value
+    {
+        $$ = new Function{ TOKEN_FUNC_SIN, { $2, $3, $4, $5, $6, 0 } };
+    }
+    | FUNC_TYPE_SIN LPAREN value_voltage value_voltage value_frequency value_time value RPAREN
+    {
+        $$ = new Function{ TOKEN_FUNC_SIN, { $3, $4, $5, $6, $7, 0 } };
+    }
+    | FUNC_TYPE_SIN value_voltage value_voltage value_frequency value_time value value
+    {
+        $$ = new Function{ TOKEN_FUNC_SIN, { $2, $3, $4, $5, $6, $7 } };
+    }
+    | FUNC_TYPE_SIN LPAREN value_voltage value_voltage value_frequency value_time value value RPAREN
+    {
+        $$ = new Function{ TOKEN_FUNC_SIN, { $3, $4, $5, $6, $7, $8 } };
+    }
+;
+
+function_pulse: FUNC_TYPE_PULSE value_voltage value_voltage value_time value_time value_time value_time
+    {
+        $$ = new Function{ TOKEN_FUNC_PULSE, { $2, $3, $4, $5, $6, $7, -1 } };
+    }
+    | FUNC_TYPE_PULSE LPAREN value_voltage value_voltage value_time value_time value_time value_time RPAREN
+    {
+        $$ = new Function{ TOKEN_FUNC_PULSE, { $3, $4, $5, $6, $7, $8, -1 } };
+    }
+    | FUNC_TYPE_PULSE value_voltage value_voltage value_time value_time value_time value_time value_time
+    {
+        $$ = new Function{ TOKEN_FUNC_PULSE, { $2, $3, $4, $5, $6, $7, $8 } };
+    }
+    | FUNC_TYPE_PULSE LPAREN value_voltage value_voltage value_time value_time value_time value_time value_time RPAREN
+    {
+        $$ = new Function{ TOKEN_FUNC_PULSE, { $3, $4, $5, $6, $7, $8, $9 } };
     }
 ;
 
@@ -383,19 +467,19 @@ dc: DC VOLTAGE_SOURCE value_voltage value_voltage value_voltage
     }
 ;
 
-ac: AC ac_type value value value
+ac: AC ac_type value value_frequency value_frequency
     {
         switch($2) {
             case TOKEN_DEC:
-                printf("[Analysis] Command(AC) Type(DEC) PointsPerDec(%f) FreqStart(%f) FreqEnd(%f)\n", $3, $4, $5);
+                printf("[Analysis] Command(AC) Type(DEC) PointsPerDec(%f) FreqStart(%e) FreqEnd(%e)\n", $3, $4, $5);
                 circuit->ACSimulation(TOKEN_DEC, $3, $4, $5);
                 break;
             case TOKEN_OCT:
-                printf("[Analysis] Command(AC) Type(OCT) PointsPerOct(%f) FreqStart(%f) FreqEnd(%f)\n", $3, $4, $5);
+                printf("[Analysis] Command(AC) Type(OCT) PointsPerOct(%f) FreqStart(%e) FreqEnd(%e)\n", $3, $4, $5);
                 circuit->ACSimulation(TOKEN_OCT, $3, $4, $5);
                 break;
             case TOKEN_LIN:
-                printf("[Analysis] Command(AC) Type(LIN) Points(%f) FreqStart(%f) FreqEnd(%f)\n", $3, $4, $5);
+                printf("[Analysis] Command(AC) Type(LIN) Points(%f) FreqStart(%e) FreqEnd(%e)\n", $3, $4, $5);
                 circuit->ACSimulation(TOKEN_LIN, $3, $4, $5);
                 break;
             default:
@@ -406,13 +490,13 @@ ac: AC ac_type value value value
 
 tran: TRAN value_time value_time
     {
-        printf("[Analysis] Command(TRAN) TimeStep(%f) StopTime(%f)\n", $2, $3);
+        printf("[Analysis] Command(TRAN) TimeStep(%e) StopTime(%e)\n", $2, $3);
         circuit->TranSimulation($2, $3, 0);
     }
     |
     TRAN value_time value_time value_time
     {
-        printf("[Analysis] Command(TRAN) TimeStep(%f) StopTime(%f) StartTime(%f)\n", $2, $3, $4);
+        printf("[Analysis] Command(TRAN) TimeStep(%e) StopTime(%e) StartTime(%e)\n", $2, $3, $4);
         circuit->TranSimulation($2, $3, $4);
     }
 ;

@@ -1,5 +1,5 @@
-#ifndef CALL_PARSER_H
-#define CALL_PARSER_H
+#ifndef SPICIAL_CALL_PARSER_H
+#define SPICIAL_CALL_PARSER_H
 
 #include <iostream>
 #include <unordered_set>
@@ -10,4 +10,4 @@
 
 Circuit *callNetlistParser(const char* fileName);
 
-#endif  // CALL_PARSER_H
+#endif  // SPICIAL_CALL_PARSER_H

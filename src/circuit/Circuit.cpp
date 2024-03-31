@@ -343,6 +343,10 @@ void Circuit::parseVoltageSource(const std::string& name,
     this->addComponent(voltage_source);
     this->addVoltageSource(voltage_source);
 }
+void Circuit::parseVoltageSource(const std::string& name,
+                        const std::string& nplus,
+                        const std::string& nminus,
+                        const Function& func) {}
 
 void Circuit::addVoltageSource(VoltageSource* voltage_source) {
     voltage_sources.push_back(voltage_source);

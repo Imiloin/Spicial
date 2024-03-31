@@ -24,7 +24,6 @@ void yyrestart(FILE *);
 %{
 #include "parser.hpp"
 #include "linetype.h"
-#include "errorcode.h"
 #include <ctype.h>
 #include <algorithm>
 #include <cctype>
@@ -54,11 +53,12 @@ int current_token_needed = 0;
 bool optional_token = false;
 %}
 
-%x NODES VALUES VARIABLES
+%x NODES VALUES VARIABLES FUNCTIONS
 %x KEYWORD_PARAM
 %x ANALYSIS_TYPE
 %x DC_SOURCE
 %x AC_TYPES
+%x FUNCTION_VALUES
 %x OPTIONS
 %x FILEEND
 
@@ -69,7 +69,8 @@ DIGIT     [0-9]
 ALPHANUM  [A-Za-z_0-9]
 STRING    {ALPHA}{ALPHANUM}+
 INTEGER   {DIGIT}+
-FLOAT     [\-]?{DIGIT}+"."{DIGIT}+([Ee][\+\-]?{DIGIT}+)?
+/* FLOAT     [\-]?{DIGIT}+"."{DIGIT}+([Ee][\+\-]?{DIGIT}+)? */
+FLOAT     [\-]?({DIGIT}+"."{DIGIT}*|{DIGIT}*)([Ee][\+\-]?{DIGIT}+)?
 
 /* components */
 RESISTOR         [Rr]{ALPHANUM}+
@@ -115,6 +116,7 @@ VALUE_CAPACITANCE   ({FLOAT}|[\-]?{INTEGER}){UNIT}[Ff]
 VALUE_INDUCTANCE    {VALUE}[Hh]
 VALUE_TIME          {VALUE}[Ss]
 VALUE_LENGTH        ({FLOAT}|[\-]?{INTEGER}){UNIT}[Mm]
+VALUE_FREQUENCY     {VALUE}[Hh][Zz]
 
 VAR_TYPE_VOLTAGE_REAL    [Vv][Rr]
 VAR_TYPE_VOLTAGE_IMAG    [Vv][Ii]
@@ -126,6 +128,9 @@ VAR_TYPE_CURRENT_IMAG    [Ii][Ii]
 VAR_TYPE_CURRENT_MAG     [Ii][Mm]*
 VAR_TYPE_CURRENT_PHASE   [Ii][Pp]
 VAR_TYPE_CURRENT_DB      [Ii][Dd][Bb]
+
+FUNC_TYPE_SIN    [Ss][Ii][Nn]
+FUNC_TYPE_PULSE  [Pp][Uu][Ll][Ss][Ee]
 
 /* xx=yy , xx is the keyword, yy is the parameter */
 IC_EQUAL  [Ii][Cc]{DELIMITER}*={DELIMITER}*
@@ -307,7 +312,6 @@ END              [\.][Ee][Nn][Dd]
             default:
                 printf("Current line type is %d\n", current_line_type);
                 printf("ERROR_UNKOWN_LINE_TYPE when parsing NODES\n");
-                exit(ERROR_UNKOWN_LINE_TYPE);
         }
     }
     return token::NODE;
@@ -334,7 +338,6 @@ END              [\.][Ee][Nn][Dd]
             default:
                 printf("Current line type is %d\n", current_line_type);
                 printf("ERROR_UNKOWN_LINE_TYPE when parsing NODES\n");
-                exit(ERROR_UNKOWN_LINE_TYPE);
         }
     }
     return token::NODE;
@@ -348,7 +351,6 @@ END              [\.][Ee][Nn][Dd]
             default:
                 printf("Current line type is %d\n", current_line_type);
                 printf("ERROR_UNKOWN_LINE_TYPE when parsing ANALYSIS_TYPE\n");
-                exit(ERROR_UNKOWN_LINE_TYPE);
         }
     }
     return token::RPAREN;
@@ -379,7 +381,6 @@ END              [\.][Ee][Nn][Dd]
             default:
                 printf("Current line type is %d\n", current_line_type);
                 printf("ERROR_UNKOWN_LINE_TYPE when parsing ANALYSIS_TYPE\n");
-                exit(ERROR_UNKOWN_LINE_TYPE);
         }
     } else {
         switch(current_line_type) {
@@ -389,7 +390,6 @@ END              [\.][Ee][Nn][Dd]
             default:
                 printf("Current line type is %d\n", current_line_type);
                 printf("ERROR_UNKOWN_LINE_TYPE when parsing ANALYSIS_TYPE\n");
-                exit(ERROR_UNKOWN_LINE_TYPE);
         }
     }
     return token::TYPE_DC;
@@ -402,9 +402,23 @@ END              [\.][Ee][Nn][Dd]
             default:
                 printf("Current line type is %d\n", current_line_type);
                 printf("ERROR_UNKOWN_LINE_TYPE when parsing ANALYSIS_TYPE\n");
-                exit(ERROR_UNKOWN_LINE_TYPE);
         }
     } else {
+        switch(current_line_type) {
+            case COMPONENT_VOLTAGE_SOURCE:
+                BEGIN(VALUES); current_token_needed = 1; optional_token = true; break;
+            case ANALYSIS_PRINT:
+            case ANALYSIS_PLOT:
+                BEGIN(VARIABLES); current_token_needed = 1; break;
+            default:
+                printf("Current line type is %d\n", current_line_type);
+                printf("ERROR_UNKOWN_LINE_TYPE when parsing ANALYSIS_TYPE\n");
+        }
+    }
+    return token::TYPE_AC;
+}
+{TYPE_TRAN} {
+    if (!optional_token) {
         switch(current_line_type) {
             case ANALYSIS_PRINT:
             case ANALYSIS_PLOT:
@@ -412,12 +426,8 @@ END              [\.][Ee][Nn][Dd]
             default:
                 printf("Current line type is %d\n", current_line_type);
                 printf("ERROR_UNKOWN_LINE_TYPE when parsing ANALYSIS_TYPE\n");
-                exit(ERROR_UNKOWN_LINE_TYPE);
         }
     }
-    return token::TYPE_AC;
-}
-{TYPE_TRAN} {
     return token::TYPE_TRAN;
 }
 {VALUE} {
@@ -429,7 +439,6 @@ END              [\.][Ee][Nn][Dd]
             default:
                 printf("Current line type is %d\n", current_line_type);
                 printf("ERROR_UNKOWN_LINE_TYPE when parsing ANALYSIS_TYPE\n");
-                exit(ERROR_UNKOWN_LINE_TYPE);
         }
     }
     return token::VALUE;
@@ -445,10 +454,35 @@ END              [\.][Ee][Nn][Dd]
             default:
                 printf("Current line type is %d\n", current_line_type);
                 printf("ERROR_UNKOWN_LINE_TYPE when parsing ANALYSIS_TYPE\n");
-                exit(ERROR_UNKOWN_LINE_TYPE);
         }
     }
     return token::VALUE_VOLTAGE;
+}
+{FUNC_TYPE_SIN} {
+    if (optional_token) {
+        switch(current_line_type) {
+            case COMPONENT_VOLTAGE_SOURCE:
+            case COMPONENT_CURRENT_SOURCE:
+                BEGIN(FUNCTION_VALUES); optional_token = false; break;
+            default:
+                printf("Current line type is %d\n", current_line_type);
+                printf("ERROR_UNKOWN_LINE_TYPE when parsing ANALYSIS_TYPE\n");
+        }
+    }
+    return token::FUNC_TYPE_SIN;
+}
+{FUNC_TYPE_PULSE} {
+    if (optional_token) {
+        switch(current_line_type) {
+            case COMPONENT_VOLTAGE_SOURCE:
+            case COMPONENT_CURRENT_SOURCE:
+                BEGIN(FUNCTION_VALUES); optional_token = false; break;
+            default:
+                printf("Current line type is %d\n", current_line_type);
+                printf("ERROR_UNKOWN_LINE_TYPE when parsing ANALYSIS_TYPE\n");
+        }
+    }
+    return token::FUNC_TYPE_PULSE;
 }
 }
 
@@ -480,7 +514,6 @@ END              [\.][Ee][Nn][Dd]
             default:
                 printf("Current line type is %d\n", current_line_type);
                 printf("ERROR_UNKOWN_LINE_TYPE when parsing AC_TYPES\n");
-                exit(ERROR_UNKOWN_LINE_TYPE);
         }
     }
     return token::TYPE_DEC;
@@ -493,7 +526,6 @@ END              [\.][Ee][Nn][Dd]
             default:
                 printf("Current line type is %d\n", current_line_type);
                 printf("ERROR_UNKOWN_LINE_TYPE when parsing AC_TYPES\n");
-                exit(ERROR_UNKOWN_LINE_TYPE);
         }
     }
     return token::TYPE_OCT;
@@ -506,7 +538,6 @@ END              [\.][Ee][Nn][Dd]
             default:
                 printf("Current line type is %d\n", current_line_type);
                 printf("ERROR_UNKOWN_LINE_TYPE when parsing AC_TYPES\n");
-                exit(ERROR_UNKOWN_LINE_TYPE);
         }
     }
     return token::TYPE_LIN;
@@ -514,6 +545,9 @@ END              [\.][Ee][Nn][Dd]
 }
 
 <VARIABLES>{
+%{
+/* variables */
+%}
 {VAR_TYPE_VOLTAGE_REAL}   {return token::VAR_TYPE_VOLTAGE_REAL;}
 {VAR_TYPE_VOLTAGE_IMAG}   {return token::VAR_TYPE_VOLTAGE_IMAG;}
 {VAR_TYPE_VOLTAGE_MAG}    {return token::VAR_TYPE_VOLTAGE_MAG;}
@@ -538,6 +572,56 @@ END              [\.][Ee][Nn][Dd]
 }
 {RPAREN} {
     optional_token = true; 
+    return token::RPAREN;
+}
+}
+
+<FUNCTIONS>{
+%{
+/* functions */
+%}
+{FUNC_TYPE_SIN} {
+    BEGIN(FUNCTION_VALUES);
+    optional_token = true;
+    return token::FUNC_TYPE_SIN;
+}
+{FUNC_TYPE_PULSE} {
+    BEGIN(FUNCTION_VALUES);
+    optional_token = true;
+    return token::FUNC_TYPE_PULSE;
+}
+}
+
+<FUNCTION_VALUES>{
+%{
+/* function values */
+%}
+{VALUE} {
+    yylval->f = parseValue(yytext); 
+    return token::VALUE;
+}
+{VALUE_VOLTAGE} {
+    char* temp = strndup(yytext, yyleng - 1);
+    yylval->f = parseValue(temp);
+    free(temp);
+    return token::VALUE_VOLTAGE;
+}
+{VALUE_CURRENT} {
+    char* temp = strndup(yytext, yyleng - 1);
+    yylval->f = parseValue(temp);
+    free(temp);
+    return token::VALUE_CURRENT;
+}
+{VALUE_TIME} {
+    char* temp = strndup(yytext, yyleng - 1);
+    yylval->f = parseValue(temp);
+    free(temp);
+    return token::VALUE_TIME;
+}
+{LPAREN} {
+    return token::LPAREN;
+}
+{RPAREN} {
     return token::RPAREN;
 }
 }
@@ -577,10 +661,11 @@ END              [\.][Ee][Nn][Dd]
                 BEGIN(DC_SOURCE); optional_token = true; break;
             case ANALYSIS_AC:
                 current_token_needed = 0; break;
+            case ANALYSIS_TRAN:
+                optional_token = true; break;
             default:
                 printf("Current line type is %d\n", current_line_type);
                 printf("ERROR_UNKOWN_LINE_TYPE when parsing VALUES\n");
-                exit(ERROR_UNKOWN_LINE_TYPE);
         }
     }
     return token::VALUE;
@@ -600,7 +685,6 @@ END              [\.][Ee][Nn][Dd]
             default:
                 printf("Current line type is %d\n", current_line_type);
                 printf("ERROR_UNKOWN_LINE_TYPE when parsing VALUES\n");
-                exit(ERROR_UNKOWN_LINE_TYPE);
         }
     }
     return token::VALUE_VOLTAGE;
@@ -628,7 +712,6 @@ END              [\.][Ee][Nn][Dd]
             default:
                 printf("Current line type is %d\n", current_line_type);
                 printf("ERROR_UNKOWN_LINE_TYPE when parsing VALUES\n");
-                exit(ERROR_UNKOWN_LINE_TYPE);
         }
     }
     return token::VALUE_CAPACITANCE;
@@ -650,7 +733,6 @@ END              [\.][Ee][Nn][Dd]
             default:
                 printf("Current line type is %d\n", current_line_type);
                 printf("ERROR_UNKOWN_LINE_TYPE when parsing VALUES\n");
-                exit(ERROR_UNKOWN_LINE_TYPE);
         }
     }
     return token::VALUE_TIME;
@@ -660,6 +742,21 @@ END              [\.][Ee][Nn][Dd]
     yylval->f = parseValue(temp);
     free(temp);
     return token::VALUE_LENGTH;
+}
+{VALUE_FREQUENCY} {
+    char* temp = strndup(yytext, yyleng - 2);
+    yylval->f = parseValue(temp);
+    free(temp);
+    if ((--current_token_needed) == 0) {
+        switch(current_line_type) {
+            case ANALYSIS_AC:
+                current_token_needed = 0; break;
+            default:
+                printf("Current line type is %d\n", current_line_type);
+                printf("ERROR_UNKOWN_LINE_TYPE when parsing VALUES\n");
+        }
+    }
+    return token::VALUE_FREQUENCY;
 }
 }
 

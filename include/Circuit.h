@@ -1,5 +1,5 @@
-#ifndef CIRCUIT_H
-#define CIRCUIT_H
+#ifndef SPICIAL_CIRCUIT_H
+#define SPICIAL_CIRCUIT_H
 
 #include <algorithm>
 #include <armadillo>
@@ -12,6 +12,7 @@
 #include "Component.h"
 #include "linetype.h"
 #include "tokentype.h"
+#include "structs.h"
 
 class Circuit {
    public:
@@ -89,12 +90,18 @@ class Circuit {
                    const std::string& vsource,
                    double gain);
 
+    // no function
     void parseVoltageSource(const std::string& name,
                             const std::string& nplus,
                             const std::string& nminus,
                             double dc_voltage,
                             double ac_magnitude = 0,
                             double ac_phase = 0);
+    // with function
+    void parseVoltageSource(const std::string& name,
+                            const std::string& nplus,
+                            const std::string& nminus,
+                            const Function& func);
     void addVoltageSource(VoltageSource* voltage_source);
 
     void parseCurrentSource(const std::string& name,
@@ -157,4 +164,4 @@ class Circuit {
     arma::vec* RHS_TRAN_T;
 };
 
-#endif  // CIRCUIT_H
+#endif  // SPICIAL_CIRCUIT_H

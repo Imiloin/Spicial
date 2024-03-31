@@ -1,7 +1,6 @@
 #include <iostream>
 #include <unordered_set>
 #include "Circuit.h"
-#include "errorcode.h"
 
 #include "mainwindow.h"
 #include <QApplication>
