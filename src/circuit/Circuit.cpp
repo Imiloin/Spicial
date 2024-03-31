@@ -343,10 +343,34 @@ void Circuit::parseVoltageSource(const std::string& name,
     this->addComponent(voltage_source);
     this->addVoltageSource(voltage_source);
 }
+// 重载 parseVoltageSource() 函数，含有 Function 参数
 void Circuit::parseVoltageSource(const std::string& name,
-                        const std::string& nplus,
-                        const std::string& nminus,
-                        const Function& func) {}
+                                 const std::string& nplus,
+                                 const std::string& nminus,
+                                 const Function& func) {
+    if (!voltagesource_name_set.insert(name)
+             .second) {  // if already exists in the set
+        qDebug() << "parseVoltageSource(" << name.c_str() << ")";
+        std::cerr << "Parse error: Voltage source " << name
+                  << " already exists.\n";
+        // throw std::invalid_argument("Voltage source already exists.");
+        return;
+    }
+
+    VoltageSource* voltage_source =
+        new VoltageSource(name, nplus, nminus, 0, 0, 0);
+    if (!hasNode(nplus)) {
+        addNode(nplus);
+    }
+    if (!hasNode(nminus)) {
+        addNode(nminus);
+    }
+    voltage_source->setFunction(&func);
+    // qDebug() << "parseVoltageSource() name: " << name.c_str();
+    branches.push_back(name);
+    this->addComponent(voltage_source);
+    this->addVoltageSource(voltage_source);
+}
 
 void Circuit::addVoltageSource(VoltageSource* voltage_source) {
     voltage_sources.push_back(voltage_source);
@@ -375,6 +399,33 @@ void Circuit::parseCurrentSource(const std::string& name,
     if (!hasNode(nminus)) {
         addNode(nminus);
     }
+    // qDebug() << "parseCurrentSource() name: " << name.c_str();
+    this->addComponent(current_source);
+    this->addCurrentSource(current_source);
+}
+// 重载 parseCurrentSource() 函数，含有 Function 参数
+void Circuit::parseCurrentSource(const std::string& name,
+                                 const std::string& nplus,
+                                 const std::string& nminus,
+                                 const Function& func) {
+    if (!currentsource_name_set.insert(name)
+             .second) {  // if already exists in the set
+        qDebug() << "parseCurrentSource(" << name.c_str() << ")";
+        std::cerr << "Parse error: Current source " << name
+                  << " already exists.\n";
+        // throw std::invalid_argument("Current source already exists.");
+        return;
+    }
+
+    CurrentSource* current_source =
+        new CurrentSource(name, nplus, nminus, 0, 0, 0);
+    if (!hasNode(nplus)) {
+        addNode(nplus);
+    }
+    if (!hasNode(nminus)) {
+        addNode(nminus);
+    }
+    current_source->setFunction(&func);
     // qDebug() << "parseCurrentSource() name: " << name.c_str();
     this->addComponent(current_source);
     this->addCurrentSource(current_source);
@@ -683,13 +734,18 @@ void Circuit::DCSimulation(int analysis_type,
     if (MNA_DC_T == nullptr || RHS_DC_T == nullptr) {
         this->generateDCMNA();
     }
+    for (double iter = start; iter <= end; iter += increment) {
+        iter_values.push_back(iter);
+    }
+
     qDebug() << "DCSimulation() analysis_type: " << analysis_type;
     switch (analysis_type) {
         case (COMPONENT_VOLTAGE_SOURCE): {
             qDebug() << "DCSimulation() source: " << source.c_str();
+            iter_name = "voltage(" + source + ")";
             int id_vsrc = getBranchIndex(source) + getNodeNum();
 
-            for (double voltage = start; voltage <= end; voltage += increment) {
+            for (double voltage : iter_values) {
                 arma::sp_mat MNA_DC = *MNA_DC_T;
                 arma::vec RHS_DC = *RHS_DC_T;
                 RHS_DC(id_vsrc) = voltage;
@@ -707,8 +763,8 @@ void Circuit::DCSimulation(int analysis_type,
                     continue;
                 }
 
-                qDebug() << "Source: " << source.c_str()
-                         << "at voltage: " << voltage;
+                // qDebug() << "Source: " << source.c_str()
+                //          << "at voltage: " << voltage;
                 // MNA_DC.print("MNA_DC");
                 // RHS_DC.print("RHS_DC");
 
@@ -718,13 +774,15 @@ void Circuit::DCSimulation(int analysis_type,
                 if (!status) {
                     qDebug() << "DCSimulation() solve failed.";
                 } else {
-                    x.print("DCSimulation() x:");
+                    // x.print("DCSimulation() x:");
                 }
+                iter_results.push_back(x);
             }
             break;
         }
         case (COMPONENT_CURRENT_SOURCE): {
             qDebug() << "DCSimulation() source: " << source.c_str();
+            iter_name = "current(" + source + ")";
             Component* current_source = getComponentPtr(source);
             if (current_source == nullptr) {
                 qDebug() << "DCSimulation() current source not found.";
@@ -735,7 +793,7 @@ void Circuit::DCSimulation(int analysis_type,
             int id_nminus = getNodeIndex(
                 dynamic_cast<CurrentSource*>(current_source)->getNminus());
 
-            for (double current = start; current <= end; current += increment) {
+            for (double current : iter_values) {
                 arma::sp_mat MNA_DC = *MNA_DC_T;
                 arma::vec RHS_DC = *RHS_DC_T;
                 RHS_DC(id_nplus) = -current;
@@ -754,8 +812,8 @@ void Circuit::DCSimulation(int analysis_type,
                     continue;
                 }
 
-                qDebug() << "Source " << source.c_str()
-                         << "at current: " << current;
+                // qDebug() << "Source " << source.c_str()
+                //          << "at current: " << current;
                 // MNA_DC.print("MNA_DC");
                 // RHS_DC.print("RHS_DC");
 
@@ -765,8 +823,9 @@ void Circuit::DCSimulation(int analysis_type,
                 if (!status) {
                     qDebug() << "DCSimulation() solve failed.";
                 } else {
-                    x.print("DCSimulation() x:");
+                    // x.print("DCSimulation() x:");
                 }
+                iter_results.push_back(x);
             }
             break;
         }
@@ -782,9 +841,9 @@ void Circuit::ACSimulation(int analysis_type,
     if (MNA_AC_T == nullptr || RHS_AC_T == nullptr) {
         this->generateACMNA();
     }
+    iter_name = "frequency";
     int node_num = getNodeNum();
     std::complex<double> j(0, 1);
-    std::vector<double> freqs;  // 保存用于 AC 分析的频率点
     qDebug() << "ACSimulation() analysis_type: " << analysis_type;
 
     // 获取仿真的频率点
@@ -793,23 +852,35 @@ void Circuit::ACSimulation(int analysis_type,
             int n_per_dec = std::round(n);
             double ratio = pow(10.0, 1.0 / n_per_dec);
             for (double freq = freq_start; freq < freq_end; freq *= ratio) {
-                freqs.push_back(freq);
+                iter_values.push_back(freq);
             }
-            freqs.push_back(freq_end);
+            iter_values.push_back(freq_end);
             break;
         }
         case (TOKEN_OCT): {
+            int n_per_oct = std::round(n);
+            double ratio = pow(8.0, 1.0 / n_per_oct);
+            for (double freq = freq_start; freq < freq_end; freq *= ratio) {
+                iter_values.push_back(freq);
+            }
+            iter_values.push_back(freq_end);
             break;
         }
         case (TOKEN_LIN): {
+            int n_lin = std::round(n);
+            double step = (freq_end - freq_start) / n_lin;
+            for (double freq = freq_start; freq <= freq_end; freq += step) {
+                iter_values.push_back(freq);
+            }
             break;
         }
         default:
+            qDebug() << "ACSimulation() analysis_type error.";
             break;
     }
 
     // 运行 AC 分析
-    for (double freq : freqs) {
+    for (double freq : iter_values) {
         arma::sp_cx_mat MNA_AC = *MNA_AC_T;
         arma::cx_vec RHS_AC = *RHS_AC_T;
 
@@ -849,7 +920,7 @@ void Circuit::ACSimulation(int analysis_type,
         }
         */
 
-        qDebug() << "AC Simulation at frequency: " << freq;
+        // qDebug() << "AC Simulation at frequency: " << freq;
         // MNA_AC.print("MNA_AC");
         // RHS_AC.print("RHS_AC");
 
@@ -859,8 +930,10 @@ void Circuit::ACSimulation(int analysis_type,
         if (!status) {
             qDebug() << "ACSimulation() solve failed.";
         } else {
-            x.print("ACSimulation() x:");
+            // x.print("ACSimulation() x:");
         }
+        arma::vec absx = arma::abs(x);
+        iter_results.push_back(absx);
     }
 }
 
@@ -872,4 +945,21 @@ void Circuit::TranSimulation(int analysis_type,
         this->generateTranMNA();
     }
     // to do:::
+}
+
+void Circuit::printResults() const {
+    auto iter1 = iter_values.begin();
+    auto iter2 = iter_results.begin();
+
+    // 迭代结果
+    while (iter1 != iter_values.end() && iter2 != iter_results.end()) {
+        double value = *iter1;
+        arma::vec result = *iter2;
+
+        printf("%s = %e: \n", iter_name.c_str(), value);
+        std::cout << result << std::endl;
+
+        ++iter1;
+        ++iter2;
+    }
 }

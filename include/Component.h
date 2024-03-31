@@ -3,6 +3,7 @@
 
 #include <string>
 #include "linetype.h"
+#include "structs.h"
 
 class Component {
    protected:
@@ -167,6 +168,7 @@ class VoltageSource : public Component {
     double dc_voltage;
     double ac_magnitude;
     double ac_phase;
+    Function* function;
 
    public:
     VoltageSource(const std::string& name,
@@ -180,6 +182,8 @@ class VoltageSource : public Component {
     double getDCVoltage() const;
     double getACMagnitude() const;
     double getACPhase() const;
+    void setFunction(const Function* func);
+    Function* getFunction() const;
 };
 
 // CurrentSource
@@ -190,6 +194,7 @@ class CurrentSource : public Component {
     double dc_current;
     double ac_magnitude;
     double ac_phase;
+    Function* function;
 
    public:
     CurrentSource(const std::string& name,
@@ -203,6 +208,8 @@ class CurrentSource : public Component {
     double getDCCurrent() const;
     double getACMagnitude() const;
     double getACPhase() const;
+    void setFunction(const Function* func);
+    Function* getFunction() const;
 };
 
 #endif  // SPICIAL_COMPONENT_H

@@ -264,6 +264,14 @@ double VoltageSource::getACPhase() const {
     return ac_phase;
 }
 
+void VoltageSource::setFunction(const Function* func) {
+    function = const_cast<Function*>(func);
+}
+
+Function* VoltageSource::getFunction() const {
+    return function;
+}
+
 // **** CurrentSource ****
 CurrentSource::CurrentSource(const std::string& name,
                              const std::string& nplus,
@@ -298,4 +306,12 @@ double CurrentSource::getACMagnitude() const {
 
 double CurrentSource::getACPhase() const {
     return ac_phase;
+}
+
+void CurrentSource::setFunction(const Function* func) {
+    function = const_cast<Function*>(func);
+}
+
+Function* CurrentSource::getFunction() const {
+    return function;
 }

@@ -104,12 +104,18 @@ class Circuit {
                             const Function& func);
     void addVoltageSource(VoltageSource* voltage_source);
 
+    // no function
     void parseCurrentSource(const std::string& name,
                             const std::string& nplus,
                             const std::string& nminus,
                             double dc_current,
                             double ac_magnitude = 0,
                             double ac_phase = 0);
+    // with function
+    void parseCurrentSource(const std::string& name,
+                            const std::string& nplus,
+                            const std::string& nminus,
+                            const Function& func);
     void addCurrentSource(CurrentSource* current_source);
 
     void generateDCMNA();
@@ -133,6 +139,7 @@ class Circuit {
                         double stop_time,
                         double start_time = 0);
     // 其他方法...
+    void printResults() const;
 
    private:
     std::vector<std::string> nodes;
@@ -162,6 +169,11 @@ class Circuit {
     arma::cx_vec* RHS_AC_T;
     arma::sp_mat* MNA_TRAN_T;
     arma::vec* RHS_TRAN_T;
+
+    // save the results of simulation
+    std::string iter_name;
+    std::vector<double> iter_values;
+    std::vector<arma::vec> iter_results;
 };
 
 #endif  // SPICIAL_CIRCUIT_H

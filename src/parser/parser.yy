@@ -146,7 +146,7 @@ component: component_resistor
 
 
 
-component_resistor: RESISTOR node node value
+component_resistor: RESISTOR node node value_resistance
         {
             printf("[Component] Device(Resistor) Name(%s) N+(%s) N-(%s) Value(%e)\n", $1, $2, $3, $4);
             circuit->parseResistor($1, $2, $3, $4);

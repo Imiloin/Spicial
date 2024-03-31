@@ -267,6 +267,8 @@ void MainWindow::slotDebug() {
 
     circuit->printMNATranTemplate();
 
+    circuit->printResults();
+
     std::cout << "********************************DEBUG*********************************"
               << std::endl;
 
