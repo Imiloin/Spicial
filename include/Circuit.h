@@ -11,8 +11,8 @@
 #include <vector>
 #include "Component.h"
 #include "linetype.h"
-#include "tokentype.h"
 #include "structs.h"
+#include "tokentype.h"
 
 class Circuit {
    public:
@@ -44,6 +44,11 @@ class Circuit {
     Component* getComponentPtr(const std::string& name);
 
     void printSize() const;
+
+    double calcFunctionAtTime(const Function* func,
+                              double time,
+                              double tstep,
+                              double tstop);
 
     void parseResistor(const std::string& name,
                        const std::string& nplus,
@@ -134,8 +139,12 @@ class Circuit {
                       double n,
                       double freq_start,
                       double freq_end);
-    void TranSimulation(int analysis_type,
-                        double step,
+    arma::vec tranBackEuler(double time,
+                            double h,
+                            double tstep,
+                            double tstop,
+                            const arma::vec x_prev);
+    void TranSimulation(double step,
                         double stop_time,
                         double start_time = 0);
     // 其他方法...

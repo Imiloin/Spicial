@@ -10,6 +10,8 @@ Circuit::Circuit() {
     RHS_DC_T = nullptr;
     MNA_AC_T = nullptr;
     RHS_AC_T = nullptr;
+    MNA_TRAN_T = nullptr;
+    RHS_TRAN_T = nullptr;
 }
 
 Circuit::~Circuit() {
@@ -118,6 +120,67 @@ void Circuit::printSize() const {
               << std::endl;
     std::cout << "Current Source: " << currentsource_name_set.size()
               << std::endl;
+}
+
+double Circuit::calcFunctionAtTime(const Function* func,
+                                   double time,
+                                   double tstep,
+                                   double tstop) {
+    // 默认func不为空
+    if (time < 0) {
+        qDebug() << "!calcFunctionAtTime() time < 0";
+        return 0;
+    } else if (time > tstop) {
+        qDebug() << "!calcFunctionAtTime() time > tstop";
+        return 0;
+    }
+    switch (func->type) {
+        case TOKEN_FUNC_SIN: {
+            double vo = func->values[0];
+            double va = func->values[1];
+            double freq =
+                std::max(func->values[2], 1 / tstop);  // default 1/tstop
+            double td = func->values[3];               // default 0
+            double theta = func->values[4];            // default 0
+            double phi = func->values[5];              // default 0
+
+            if (time <= td) {
+                return vo + va * sin(2 * M_PI * phi / 360);
+            } else {  // td < time <= tstop
+                return vo +
+                       va * exp(-theta * (time - td)) *
+                           sin(2 * M_PI * (freq * (time - td) + phi / 360));
+            }
+        }
+
+        case TOKEN_FUNC_PULSE: {
+            double v1 = func->values[0];
+            double v2 = func->values[1];
+            double td = func->values[2];                    // default 0
+            double tr = std::max(func->values[3], tstep);   // default tstep
+            double tf = std::max(func->values[4], tstep);   // default tstep
+            double pw = std::max(func->values[5], tstop);   // default tstop
+            double per = std::max(func->values[6], tstop);  // default tstop
+
+            time = fmod(time, per);
+            if (time <= td) {
+                return v1;
+            } else if (time <= td + tr) {
+                return v1 + (v2 - v1) / tr * (time - td);
+            } else if (time <= td + tr + pw) {
+                return v2;
+            } else if (time <= td + tr + pw + tf) {
+                return v2 + (v1 - v2) / tf * (time - td - tr - pw);
+            } else {  // td + tr + pw + tf < time <= tstop
+                return v1;
+            }
+        }
+            // add more function types here
+
+        default:
+            qDebug() << "!No such function type";
+            return -1;
+    }
 }
 
 void Circuit::parseResistor(const std::string& name,
@@ -493,7 +556,7 @@ void Circuit::generateDCMNA() {
                 (*MNA)(id_nminus, id_branch) = -1;
                 (*MNA)(id_branch, id_nplus) = 1;
                 (*MNA)(id_branch, id_nminus) = -1;
-                (*MNA)(id_branch, id_branch) -= 0 * inductance;
+                (*MNA)(id_branch, id_branch) = -0 * inductance;
                 break;
             }
             case COMPONENT_VCVS: {
@@ -508,12 +571,12 @@ void Circuit::generateDCMNA() {
                 double gain = dynamic_cast<VCVS*>(component)->getGain();
                 int id_branch = getBranchIndex(component->getName()) + node_num;
 
-                (*MNA)(id_nplus, id_branch) += 1;
-                (*MNA)(id_nminus, id_branch) -= 1;
-                (*MNA)(id_branch, id_nplus) += 1;
-                (*MNA)(id_branch, id_nminus) -= 1;
-                (*MNA)(id_branch, id_ncplus) -= gain;
-                (*MNA)(id_branch, id_ncminus) += gain;
+                (*MNA)(id_nplus, id_branch) = 1;
+                (*MNA)(id_nminus, id_branch) = -1;
+                (*MNA)(id_branch, id_nplus) = 1;
+                (*MNA)(id_branch, id_nminus) = -1;
+                (*MNA)(id_branch, id_ncplus) = -gain;
+                (*MNA)(id_branch, id_ncminus) = gain;
                 break;
             }
             case COMPONENT_CCCS: {
@@ -622,25 +685,17 @@ void Circuit::generateACMNA() {
 
     // 生成 AC 状态 MNA 模板
     for (VoltageSource* voltage_source : voltage_sources) {
-        double ac_magnitude =
-            dynamic_cast<VoltageSource*>(voltage_source)->getACMagnitude();
-        double ac_phase =
-            dynamic_cast<VoltageSource*>(voltage_source)->getACPhase() / 180 *
-            M_PI;
+        double ac_magnitude = voltage_source->getACMagnitude();
+        double ac_phase = voltage_source->getACPhase() / 180 * M_PI;
         int id_branch = getBranchIndex(voltage_source->getName()) + node_num;
 
         (*RHS_AC_T)(id_branch) = ac_magnitude * exp(j * ac_phase);
     }
     for (CurrentSource* current_source : current_sources) {
-        int id_nplus = getNodeIndex(
-            dynamic_cast<CurrentSource*>(current_source)->getNplus());
-        int id_nminus = getNodeIndex(
-            dynamic_cast<CurrentSource*>(current_source)->getNminus());
-        double ac_magnitude =
-            dynamic_cast<CurrentSource*>(current_source)->getACMagnitude();
-        double ac_phase =
-            dynamic_cast<CurrentSource*>(current_source)->getACPhase() / 180 *
-            M_PI;
+        int id_nplus = getNodeIndex(current_source->getNplus());
+        int id_nminus = getNodeIndex(current_source->getNminus());
+        double ac_magnitude = current_source->getACMagnitude();
+        double ac_phase = current_source->getACPhase() / 180 * M_PI;
 
         (*RHS_AC_T)(id_nplus) = -ac_magnitude * exp(j * ac_phase);
         (*RHS_AC_T)(id_nminus) = ac_magnitude * exp(j * ac_phase);
@@ -655,13 +710,16 @@ void Circuit::generateTranMNA() {
     // 生成 Tran 状态 MNA，复制 DC 状态 MNA
     MNA_TRAN_T = new arma::sp_mat(*MNA_DC_T);
     RHS_TRAN_T = new arma::vec(*RHS_DC_T);
+    // (*MNA_TRAN_T).print("MNA_TRAN_T, before resize");
 
     // Resize the matrices, add additional columns and rows for capacitors
     int new_size = getNodeNum() + getBranchNum() + capacitors.size();
     MNA_TRAN_T->resize(new_size, new_size);
     RHS_TRAN_T->resize(new_size);
+    // (*MNA_TRAN_T).print("MNA_TRAN_T, after resize");
 
     // 生成 Tran 状态 MNA 模板
+    // 为 Capacitor 添加额外的 branch
     for (Capacitor* capacitor : capacitors) {
         branches.push_back(capacitor->getName());  // only add to branches when
                                                    // using tran simulation
@@ -885,12 +943,9 @@ void Circuit::ACSimulation(int analysis_type,
         arma::cx_vec RHS_AC = *RHS_AC_T;
 
         for (Capacitor* capacitor : capacitors) {
-            int id_nplus =
-                getNodeIndex(dynamic_cast<Capacitor*>(capacitor)->getNplus());
-            int id_nminus =
-                getNodeIndex(dynamic_cast<Capacitor*>(capacitor)->getNminus());
-            double capacitance =
-                dynamic_cast<Capacitor*>(capacitor)->getCapacitance();
+            int id_nplus = getNodeIndex(capacitor->getNplus());
+            int id_nminus = getNodeIndex(capacitor->getNminus());
+            double capacitance = capacitor->getCapacitance();
 
             MNA_AC(id_nplus, id_nplus) += 2 * M_PI * freq * capacitance * j;
             MNA_AC(id_nminus, id_nminus) += 2 * M_PI * freq * capacitance * j;
@@ -898,8 +953,7 @@ void Circuit::ACSimulation(int analysis_type,
             MNA_AC(id_nminus, id_nplus) -= 2 * M_PI * freq * capacitance * j;
         }
         for (Inductor* inductor : inductors) {
-            double inductance =
-                dynamic_cast<Inductor*>(inductor)->getInductance();
+            double inductance = inductor->getInductance();
             int id_branch = getBranchIndex(inductor->getName()) + node_num;
 
             MNA_AC(id_branch, id_branch) -= 2 * M_PI * freq * inductance * j;
@@ -937,21 +991,205 @@ void Circuit::ACSimulation(int analysis_type,
     }
 }
 
-void Circuit::TranSimulation(int analysis_type,
-                             double step,
-                             double stop_time,
-                             double start_time) {
+arma::vec Circuit::tranBackEuler(double time,
+                                 double h,
+                                 double tstep,
+                                 double tstop,
+                                 const arma::vec x_prev) {
+    int node_num = getNodeNum();
+    arma::sp_mat MNA_TRAN = *MNA_TRAN_T;
+    arma::vec RHS_TRAN = *RHS_TRAN_T;
+
+    for (Capacitor* capacitor : capacitors) {
+        int id_nplus = getNodeIndex(capacitor->getNplus());
+        int id_nminus = getNodeIndex(capacitor->getNminus());
+        double capacitance = capacitor->getCapacitance();
+        int id_branch = getBranchIndex(capacitor->getName()) + node_num;
+
+        MNA_TRAN(id_branch, id_nplus) = capacitance / h;
+        MNA_TRAN(id_branch, id_nminus) = -capacitance / h;
+        RHS_TRAN(id_branch) =
+            capacitance / h * (x_prev(id_nplus) - x_prev(id_nminus));
+    }
+
+    for (Inductor* inductor : inductors) {
+        double inductance = inductor->getInductance();
+        int id_branch = getBranchIndex(inductor->getName()) + node_num;
+
+        MNA_TRAN(id_branch, id_branch) = -inductance / h;
+        RHS_TRAN(id_branch) = -inductance / h * x_prev(id_branch);
+    }
+
+    for (VoltageSource* voltage_source : voltage_sources) {
+        if (voltage_source->getFunction() == nullptr) {
+            continue;  // 没有 function，直接使用 DC 电压，已在 MNA_TRAN_T
+                       // 中存在
+        }
+        int id_branch = getBranchIndex(voltage_source->getName()) + node_num;
+
+        RHS_TRAN(id_branch) = calcFunctionAtTime(voltage_source->getFunction(),
+                                                 time, tstep, tstop);
+    }
+
+    for (CurrentSource* current_source : current_sources) {
+        if (current_source->getFunction() == nullptr) {
+            continue;  // 没有 function，直接使用 DC 电流，已在 MNA_TRAN_T
+                       // 中存在
+        }
+        int id_nplus = getNodeIndex(current_source->getNplus());
+        int id_nminus = getNodeIndex(current_source->getNminus());
+        double current_time = calcFunctionAtTime(current_source->getFunction(),
+                                                 time, tstep, tstop);
+
+        RHS_TRAN(id_nplus) = -current_time;
+        RHS_TRAN(id_nminus) = current_time;
+    }
+
+    // exclude ground node
+    MNA_TRAN.shed_row(0);
+    MNA_TRAN.shed_col(0);
+    RHS_TRAN.shed_row(0);
+    // check if the matrix is singular
+    if (arma::det(arma::mat(MNA_TRAN)) == 0) {
+        qDebug() << "The matrix is singular after shedding the first "
+                    "row and column, cannot solve the system.";
+    }
+
+    arma::vec x;
+    bool status = arma::spsolve(x, MNA_TRAN, RHS_TRAN);
+    printf("status: %d\n", status);
+    if (!status) {
+        qDebug() << "TranSimulation() solve failed.";
+        return x_prev;
+    } else {
+        return x;
+    }
+}
+
+void Circuit::TranSimulation(double step, double stop_time, double start_time) {
+    // qDebug() << "TranSimulation() step: " << step;
+    // qDebug() << "TranSimulation() stop_time: " << stop_time;
+    // qDebug() << "TranSimulation() start_time: " << start_time;
     if (MNA_TRAN_T == nullptr || RHS_TRAN_T == nullptr) {
         this->generateTranMNA();
     }
-    // to do:::
+    double h = step;  // 为简化处理，使用恒定步长
+    iter_name = "time";
+    int node_num = getNodeNum();
+    double time = 0;  // 当前时间点
+    arma::vec x;      // 保存当前时间点的解
+
+    if (MNA_TRAN_T == nullptr || RHS_TRAN_T == nullptr) {
+        qDebug() << "generateTranMNA() failed.";
+    }
+    // (*MNA_TRAN_T).print("MNA_TRAN_T:");
+    // 先根据初始条件解出第一组解（t = 0） //
+    // qDebug() << "Creating MNA_TRAN_0 and RHS_TRAN_0";
+    arma::sp_mat* MNA_TRAN_0 = new arma::sp_mat(*MNA_TRAN_T);
+    arma::vec* RHS_TRAN_0 = new arma::vec(*RHS_TRAN_T);
+
+    for (Capacitor* capacitor : capacitors) {
+        int id_nplus = getNodeIndex(capacitor->getNplus());
+        int id_nminus = getNodeIndex(capacitor->getNminus());
+        double initial_voltage = capacitor->getInitialVoltage();
+        int id_branch = getBranchIndex(capacitor->getName()) + node_num;
+
+        (*MNA_TRAN_0)(id_nplus, id_branch) = 1;
+        (*MNA_TRAN_0)(id_nminus, id_branch) = -1;
+        (*MNA_TRAN_0)(id_branch, id_nplus) = 1;
+        (*MNA_TRAN_0)(id_branch, id_nminus) = -1;
+        (*MNA_TRAN_0)(id_branch, id_branch) = 0;
+        (*RHS_TRAN_0)(id_branch) = initial_voltage;
+    }
+    for (Inductor* inductor : inductors) {
+        int id_nplus = getNodeIndex(inductor->getNplus());
+        int id_nminus = getNodeIndex(inductor->getNminus());
+        double initial_current = inductor->getInitialCurrent();
+
+        (*RHS_TRAN_0)(id_nplus) = -initial_current;
+        (*RHS_TRAN_0)(id_nminus) = initial_current;
+    }
+    for (VoltageSource* voltage_source : voltage_sources) {
+        if (voltage_source->getFunction() == nullptr) {
+            continue;  // 没有 function，直接使用 DC 电压，已在 MNA_TRAN_T
+                       // 中存在
+        }
+        int id_branch = getBranchIndex(voltage_source->getName()) + node_num;
+
+        (*RHS_TRAN_0)(id_branch) =
+            calcFunctionAtTime(voltage_source->getFunction(), 0, h, stop_time);
+    }
+    for (CurrentSource* current_source : current_sources) {
+        if (current_source->getFunction() == nullptr) {
+            continue;  // 没有 function，直接使用 DC 电流，已在 MNA_TRAN_T
+                       // 中存在
+        }
+        int id_nplus = getNodeIndex(current_source->getNplus());
+        int id_nminus = getNodeIndex(current_source->getNminus());
+        double current_0 =
+            calcFunctionAtTime(current_source->getFunction(), 0, h, stop_time);
+
+        (*RHS_TRAN_0)(id_nplus) = -current_0;
+        (*RHS_TRAN_0)(id_nminus) = current_0;
+    }
+
+    // exclude ground node
+    (*MNA_TRAN_0).shed_row(0);
+    (*MNA_TRAN_0).shed_col(0);
+    (*RHS_TRAN_0).shed_row(0);
+    // check if the matrix is singular
+    if (arma::det(arma::mat(*MNA_TRAN_0)) == 0) {
+        qDebug() << "The matrix is singular after shedding the first "
+                    "row and column, cannot solve the system.";
+    }
+
+    bool status = arma::spsolve(x, *MNA_TRAN_0, *RHS_TRAN_0);
+    printf("status: %d\n", status);
+    if (!status) {
+        qDebug() << "TranSimulation() solve failed.";
+    } else {
+        // x.print("TranSimulation() t=0 x:");
+    }
+    if (start_time == 0) {
+        iter_values.push_back(time);  // 保存仿真时间点
+        iter_results.push_back(x);    // time = 0 的解
+    }
+
+    delete MNA_TRAN_0;
+    delete RHS_TRAN_0;
+    // 第一组解求解完毕 //
+
+    // arma::sp_mat* MNA_TRAN = new arma::sp_mat(*MNA_TRAN_T);
+    // arma::vec* RHS_TRAN = new arma::vec(*RHS_TRAN_T);
+    // 求解 (0, start_time) 之间的解，不含两边 //
+    for (time = h; time < start_time; time += h) {
+        x = tranBackEuler(time, h, step, stop_time, x);
+    }
+    time -= h;  // 回退到 start_time 前一个时间点
+    // 求解 [time, start_time] 的解 //
+    if (time < start_time) {
+        double h_last = start_time - time;
+        time = start_time;
+        x = tranBackEuler(start_time, h_last, step, stop_time, x);
+        iter_values.push_back(time);  // 保存仿真时间点
+        iter_results.push_back(x);    // start_time 的解
+    }
+    // 求解 (start_time, stop_time] 的解 //
+    std::cout << (time < stop_time) << std::endl;
+    for (time += h; time <= stop_time; time += h) {
+        x = tranBackEuler(time, h, step, stop_time, x);
+        iter_values.push_back(time);  // 保存仿真时间点
+        iter_results.push_back(x);    // time 的解
+        // std::cout << "time: " << time << "\t";
+        // x.print("TranSimulation() x:");
+    }
 }
 
 void Circuit::printResults() const {
     auto iter1 = iter_values.begin();
     auto iter2 = iter_results.begin();
 
-    // 迭代结果
+    // 输出迭代结果
     while (iter1 != iter_values.end() && iter2 != iter_results.end()) {
         double value = *iter1;
         arma::vec result = *iter2;

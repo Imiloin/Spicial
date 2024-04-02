@@ -242,6 +242,7 @@ VoltageSource::VoltageSource(const std::string& name,
       ac_magnitude(ac_magnitude),
       ac_phase(ac_phase) {
     type = COMPONENT_VOLTAGE_SOURCE;
+    function = nullptr;
 }
 
 std::string VoltageSource::getNplus() const {
@@ -286,6 +287,7 @@ CurrentSource::CurrentSource(const std::string& name,
       ac_magnitude(ac_magnitude),
       ac_phase(ac_phase) {
     type = COMPONENT_CURRENT_SOURCE;
+    function = nullptr;
 }
 
 std::string CurrentSource::getNplus() const {

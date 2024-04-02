@@ -282,6 +282,21 @@ component_current_source: CURRENT_SOURCE node node value_current
         printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f) Phase(%f)\n", $1, $2, $3, $5, $7, $8);
         circuit->parseCurrentSource($1, $2, $3, $5, $7, $8);
     }
+    | CURRENT_SOURCE node node function
+    {
+        switch ($4->type) {
+            case TOKEN_FUNC_SIN:
+                printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) Sin Function(OffsetVolt(%f) Amplitude(%f) Freq(%e) DelayTime(%e) DampingFactor(%e) PhaseDelay(%f))\n", $1, $2, $3, $4->values[0], $4->values[1], $4->values[2], $4->values[3], $4->values[4], $4->values[5]);
+                circuit->parseCurrentSource($1, $2, $3, *$4);
+                break;
+            case TOKEN_FUNC_PULSE:
+                printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) Pulse Function(LowVolt(%f) HightVolt(%f) Delaytime(%e) Risetime(%e) Falltime(%e) PulseWidth(%e) Period(%e))\n", $1, $2, $3, $4->values[0], $4->values[1], $4->values[2], $4->values[3], $4->values[4], $4->values[5], $4->values[6]);
+                circuit->parseCurrentSource($1, $2, $3, *$4);
+                break;
+            default:
+                printf("!No such function type\n");
+        }
+    }
 ;
 
 value_voltage: value
@@ -422,11 +437,11 @@ function_sin: FUNC_TYPE_SIN value_voltage value_voltage value_frequency
 
 function_pulse: FUNC_TYPE_PULSE value_voltage value_voltage value_time value_time value_time value_time
     {
-        $$ = new Function{ TOKEN_FUNC_PULSE, { $2, $3, $4, $5, $6, $7, -1 } };
+        $$ = new Function{ TOKEN_FUNC_PULSE, { $2, $3, $4, $5, $6, $7, 0 } };
     }
     | FUNC_TYPE_PULSE LPAREN value_voltage value_voltage value_time value_time value_time value_time RPAREN
     {
-        $$ = new Function{ TOKEN_FUNC_PULSE, { $3, $4, $5, $6, $7, $8, -1 } };
+        $$ = new Function{ TOKEN_FUNC_PULSE, { $3, $4, $5, $6, $7, $8, 0 } };
     }
     | FUNC_TYPE_PULSE value_voltage value_voltage value_time value_time value_time value_time value_time
     {
