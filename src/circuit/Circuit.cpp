@@ -828,7 +828,7 @@ void Circuit::DCSimulation(int analysis_type,
 
                 arma::vec x;
                 bool status = arma::spsolve(x, MNA_DC, RHS_DC);
-                printf("status: %d\n", status);
+                // printf("status: %d\n", status);
                 if (!status) {
                     qDebug() << "DCSimulation() solve failed.";
                 } else {
@@ -877,7 +877,7 @@ void Circuit::DCSimulation(int analysis_type,
 
                 arma::vec x;
                 bool status = arma::spsolve(x, MNA_DC, RHS_DC);
-                printf("status: %d\n", status);
+                // printf("status: %d\n", status);
                 if (!status) {
                     qDebug() << "DCSimulation() solve failed.";
                 } else {
@@ -1053,11 +1053,13 @@ arma::vec Circuit::tranBackEuler(double time,
     if (arma::det(arma::mat(MNA_TRAN)) == 0) {
         qDebug() << "The matrix is singular after shedding the first "
                     "row and column, cannot solve the system.";
+        MNA_TRAN.print("MNA_TRAN");
+        RHS_TRAN.print("RHS_TRAN");
     }
 
     arma::vec x;
     bool status = arma::spsolve(x, MNA_TRAN, RHS_TRAN);
-    printf("status: %d\n", status);
+    // printf("status: %d\n", status);
     if (!status) {
         qDebug() << "TranSimulation() solve failed.";
         return x_prev;
@@ -1105,9 +1107,12 @@ void Circuit::TranSimulation(double step, double stop_time, double start_time) {
         int id_nplus = getNodeIndex(inductor->getNplus());
         int id_nminus = getNodeIndex(inductor->getNminus());
         double initial_current = inductor->getInitialCurrent();
+        int id_branch = getBranchIndex(inductor->getName()) + node_num;
 
-        (*RHS_TRAN_0)(id_nplus) = -initial_current;
-        (*RHS_TRAN_0)(id_nminus) = initial_current;
+        (*MNA_TRAN_0)(id_branch, id_nplus) = 0;
+        (*MNA_TRAN_0)(id_branch, id_nminus) = 0;
+        (*MNA_TRAN_0)(id_branch, id_branch) = 1;
+        (*RHS_TRAN_0)(id_branch) = initial_current;
     }
     for (VoltageSource* voltage_source : voltage_sources) {
         if (voltage_source->getFunction() == nullptr) {
@@ -1141,10 +1146,12 @@ void Circuit::TranSimulation(double step, double stop_time, double start_time) {
     if (arma::det(arma::mat(*MNA_TRAN_0)) == 0) {
         qDebug() << "The matrix is singular after shedding the first "
                     "row and column, cannot solve the system.";
+        (*MNA_TRAN_0).print("MNA_TRAN");
+        (*RHS_TRAN_0).print("RHS_TRAN");
     }
 
     bool status = arma::spsolve(x, *MNA_TRAN_0, *RHS_TRAN_0);
-    printf("status: %d\n", status);
+    // printf("status: %d\n", status);
     if (!status) {
         qDebug() << "TranSimulation() solve failed.";
     } else {
