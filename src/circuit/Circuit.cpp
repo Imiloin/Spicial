@@ -37,6 +37,7 @@ bool Circuit::hasNode(const std::string& node_name) {  // 判断是否有节点
 
 void Circuit::addNode(const std::string& node_name) {  // 添加节点
     nodes.push_back(node_name);
+    nodes_exgnd.push_back(node_name);
 }
 
 int Circuit::getNodeIndex(const std::string& name) {  // 获取节点的编号
@@ -49,12 +50,14 @@ int Circuit::getNodeIndex(const std::string& name) {  // 获取节点的编号
     return std::distance(nodes.begin(), it);
 }
 
-int Circuit::getNodeIndexExgnd(
-    const std::string& name) {  // 获取节点的编号，不包括地
-    // if (!nodes.empty() && nodes.front() == "0") {
-    //     nodes.erase(nodes.begin());
-    // }
-    return getNodeIndex(name) - 1;
+int Circuit::getNodeIndexExgnd(const std::string& name) {
+    auto it = std::find(nodes_exgnd.begin(), nodes_exgnd.end(), name);
+    if (it == nodes_exgnd.end()) {
+        qDebug() << "getNodeIndexExgnd(" << name.c_str() << ")";
+        printf("Node not found\n");
+        return -1;
+    }
+    return std::distance(nodes_exgnd.begin(), it);
 }
 
 int Circuit::getNodeNum() const {
@@ -1018,6 +1021,8 @@ arma::vec Circuit::tranBackEuler(double time,
     int node_num = getNodeNum();
     arma::sp_mat MNA_TRAN = *MNA_TRAN_T;
     arma::vec RHS_TRAN = *RHS_TRAN_T;
+    arma::vec x_prev_gnd = x_prev;
+    x_prev_gnd.insert_rows(0, arma::zeros(1));  // insert ground node
 
     for (Capacitor* capacitor : capacitors) {
         int id_nplus = getNodeIndex(capacitor->getNplus());
@@ -1028,7 +1033,7 @@ arma::vec Circuit::tranBackEuler(double time,
         MNA_TRAN(id_branch, id_nplus) = capacitance / h;
         MNA_TRAN(id_branch, id_nminus) = -capacitance / h;
         RHS_TRAN(id_branch) =
-            capacitance / h * (x_prev(id_nplus) - x_prev(id_nminus));
+            capacitance / h * (x_prev_gnd(id_nplus) - x_prev_gnd(id_nminus));
     }
 
     for (Inductor* inductor : inductors) {
@@ -1036,7 +1041,7 @@ arma::vec Circuit::tranBackEuler(double time,
         int id_branch = getBranchIndex(inductor->getName()) + node_num;
 
         MNA_TRAN(id_branch, id_branch) = -inductance / h;
-        RHS_TRAN(id_branch) = -inductance / h * x_prev(id_branch);
+        RHS_TRAN(id_branch) = -inductance / h * x_prev_gnd(id_branch);
     }
 
     for (VoltageSource* voltage_source : voltage_sources) {
@@ -1105,6 +1110,9 @@ void Circuit::TranSimulation(double step, double stop_time, double start_time) {
         qDebug() << "generateTranMNA() failed.";
     }
     // (*MNA_TRAN_T).print("MNA_TRAN_T:");
+    // printNodes();
+    // printBranches();
+
     // 先根据初始条件解出第一组解（t = 0） //
     // qDebug() << "Creating MNA_TRAN_0 and RHS_TRAN_0";
     arma::sp_mat* MNA_TRAN_0 = new arma::sp_mat(*MNA_TRAN_T);

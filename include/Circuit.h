@@ -161,6 +161,7 @@ class Circuit {
     std::string file_path;
 
     std::vector<std::string> nodes;
+    std::vector<std::string> nodes_exgnd;  // exclude gnd
     std::vector<std::string> branches;  // use component name as branch name
     std::vector<Component*> components;
 
