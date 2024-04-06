@@ -12,9 +12,10 @@
         <file alias="filesaveall">../../assets/icons/filesaveall_48x.png</file>
         <file alias="filesaveas">../../assets/icons/filesaveas_48x.png</file>
 
-        <file alias="parse">../../assets/icons/parse_48x.png</file>
+        <file alias="simulate">../../assets/icons/simulate_48x.png</file>
         <file alias="debug">../../assets/icons/debug_48x.png</file>
 
+        <file alias="parse">../../assets/icons/parse_48x.png</file>
         <file alias="circuit">../../assets/icons/circuit_48x.png</file>
 
         <file alias="spicial">../../assets/icons/spicial.png</file>

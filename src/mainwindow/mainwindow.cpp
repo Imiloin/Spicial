@@ -81,11 +81,11 @@ void MainWindow::createActions() {
     connect(helloAction, SIGNAL(triggered()), this, SLOT(slotHelloWorld()));
 
     // parse netlist action
-    parseNetlistAction = new QAction(QIcon(":/icons/parse"), tr("parse"), this);
+    simulateAction =
+        new QAction(QIcon(":/icons/simulate"), tr("simulate"), this);
     debugAction->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_P);
-    parseNetlistAction->setToolTip(tr("Parse Netlist"));
-    connect(parseNetlistAction, SIGNAL(triggered()), this,
-            SLOT(slotParseNetlist()));
+    simulateAction->setToolTip(tr("Do netlist simulation"));
+    connect(simulateAction, SIGNAL(triggered()), this, SLOT(slotSimulate()));
 }
 
 void MainWindow::createMenus() {
@@ -106,6 +106,7 @@ void MainWindow::createToolBars() {
     /// You can use multiple toolbars. Actions are separated in the interface.
     fileTool = addToolBar(tr("File"));
     editTool = addToolBar(tr("Edit"));
+    simulateTool = addToolBar(tr("Simulate"));
     debugTool = addToolBar(tr("Debug"));
     demoTool = addToolBar(tr("demo"));
 
@@ -117,7 +118,8 @@ void MainWindow::createToolBars() {
     editTool->addAction(cutAction);
     editTool->addAction(pasteAction);
 
-    debugTool->addAction(parseNetlistAction);
+    simulateTool->addAction(simulateAction);
+
     debugTool->addAction(debugAction);
 
     demoTool->addAction(helloAction);
@@ -223,16 +225,22 @@ void MainWindow::slotHelloWorld() {
     qDebug() << "slotHelloWorld()";
 }
 
-void MainWindow::slotParseNetlist() {
-    qDebug() << "slotParseNetlist()" << fileName;
+void MainWindow::slotSimulate() {
+    qDebug() << "slotSimulate()" << fileName;
+
+    std::cout << "-------------------------------Simulation--------------------"
+                 "-----------"
+              << std::endl;
 
     Circuit* circuit = callNetlistParser(fileName.toStdString().c_str());
     if (circuit == nullptr) {
-        qDebug() << "Call parser bit return nullptr\n";
+        qDebug() << "Call parser but return nullptr\n";
         return;
     }
 
-    std::cout << "------------------------------------" << std::endl;
+    std::cout << "-------------------------------Simulation--------------------"
+                 "-----------"
+              << std::endl;
 
     delete circuit;
 }
@@ -240,12 +248,13 @@ void MainWindow::slotParseNetlist() {
 void MainWindow::slotDebug() {
     qDebug() << "slotDebug()";
 
-    std::cout << "********************************DEBUG*********************************"
+    std::cout << "********************************DEBUG************************"
+                 "*********"
               << std::endl;
 
     Circuit* circuit = callNetlistParser(fileName.toStdString().c_str());
     if (circuit == nullptr) {
-        qDebug() << "Call parser bit return nullptr\n";
+        qDebug() << "Call parser but return nullptr\n";
         return;
     }
 
@@ -269,7 +278,8 @@ void MainWindow::slotDebug() {
 
     circuit->printResults();
 
-    std::cout << "********************************DEBUG*********************************"
+    std::cout << "********************************DEBUG************************"
+                 "*********"
               << std::endl;
 
     delete circuit;

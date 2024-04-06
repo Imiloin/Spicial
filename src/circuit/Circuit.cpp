@@ -520,15 +520,15 @@ void Circuit::addCurrentSource(CurrentSource* current_source) {
 void Circuit::generateDCMNA() {
     // 生成 DC 状态 MNA 模板
     int node_num = getNodeNum();
-    qDebug() << "generateDCMNA() node_num: " << node_num;
+    // qDebug() << "generateDCMNA() node_num: " << node_num;
     int branch_num = getBranchNum();
-    qDebug() << "generateDCMNA() branch_num: " << branch_num;
+    // qDebug() << "generateDCMNA() branch_num: " << branch_num;
     int matrix_size = node_num + branch_num;
     arma::sp_mat* MNA =
         new arma::sp_mat(matrix_size, matrix_size);  // create sparse MNA
     arma::vec* RHS =
         new arma::vec(arma::zeros<arma::vec>(matrix_size));  // create RHS
-    qDebug() << "generateDCMNA() matrix_size: " << matrix_size;
+    // qDebug() << "generateDCMNA() matrix_size: " << matrix_size;
     for (Component* component : components) {
         switch (component->getType()) {
             case COMPONENT_RESISTOR: {
@@ -1430,6 +1430,7 @@ void Circuit::printAnalysis(int analysis_type,
 
 void Circuit::plotAnalysis(int analysis_type,
                            const std::vector<Variable>& var_list) {
+    qDebug() << "plotAnalysis() analysis_type: " << analysis_type;
     printAnalysis(analysis_type, var_list);
     callPlot(xdata, ydata);
 }

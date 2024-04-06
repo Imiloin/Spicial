@@ -37,7 +37,7 @@ public slots:
     void slotOpenFile();
     void slotSaveFile();
     void slotDebug();
-    void slotParseNetlist();
+    void slotSimulate();
 
     /** @brief slot of hello world demo */
     void slotHelloWorld();
@@ -49,6 +49,7 @@ private:
 
     QToolBar *fileTool;
     QToolBar *editTool;
+    QToolBar *simulateTool;
     QToolBar *debugTool;
     QToolBar *demoTool;
 
@@ -59,7 +60,7 @@ private:
     QAction *copyAction;
     QAction *pasteAction;
 
-    QAction *parseNetlistAction;
+    QAction *simulateAction;
     QAction *debugAction;
 
     QAction *helloAction; // hello world demo
