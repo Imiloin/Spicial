@@ -19,4 +19,9 @@ struct Function {
     std::vector<double> values;
 };
 
+struct ColumnData {
+    std::string name;
+    std::vector<double> values;
+};
+
 #endif // SPICIAL_STRUCTS_H

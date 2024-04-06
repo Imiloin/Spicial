@@ -4,19 +4,22 @@
 #include <algorithm>
 #include <armadillo>
 #include <complex>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <stdexcept>  // for std::invalid_argument
 #include <string>
 #include <unordered_set>
 #include <vector>
 #include "Component.h"
+#include "call_plot.h"
 #include "linetype.h"
 #include "structs.h"
 #include "tokentype.h"
 
 class Circuit {
    public:
-    Circuit();
+    Circuit(const std::string& file);
     ~Circuit();
 
     bool hasNode(const std::string& node_name);
@@ -24,8 +27,10 @@ class Circuit {
     void addNode(const std::string& node_name);
 
     int getNodeIndex(const std::string& name);
+    int getNodeIndexExgnd(const std::string& name);
 
     int getNodeNum() const;
+    int getNodeNumExgnd() const;
 
     void printNodes() const;
 
@@ -144,13 +149,17 @@ class Circuit {
                             double tstep,
                             double tstop,
                             const arma::vec x_prev);
-    void TranSimulation(double step,
-                        double stop_time,
-                        double start_time = 0);
+    void TranSimulation(double step, double stop_time, double start_time = 0);
+
+    void printAnalysis(int analysis_type,
+                       const std::vector<Variable>& var_list);
+    void plotAnalysis(int analysis_type, const std::vector<Variable>& var_list);
     // 其他方法...
     void printResults() const;
 
    private:
+    std::string file_path;
+
     std::vector<std::string> nodes;
     std::vector<std::string> branches;  // use component name as branch name
     std::vector<Component*> components;
@@ -180,9 +189,15 @@ class Circuit {
     arma::vec* RHS_TRAN_T;
 
     // save the results of simulation
+    int simulation_type;
     std::string iter_name;
     std::vector<double> iter_values;
-    std::vector<arma::vec> iter_results;
+    std::vector<arma::vec> iter_results;      // exclude gnd!!!
+    std::vector<arma::cx_vec> iter_cresults;  // for AC simulation
+
+    // save results of print or plot
+    ColumnData xdata;
+    std::vector<ColumnData> ydata;
 };
 
 #endif  // SPICIAL_CIRCUIT_H

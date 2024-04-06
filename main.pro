@@ -4,6 +4,7 @@ INCLUDEPATH += $$PWD/include
 
 QT += widgets printsupport
 
+CONFIG += c++17  # enable C++17 support
 CONFIG += debug
 #CONFIG += release
 
@@ -35,7 +36,8 @@ HEADERS += include/*.h \
 SOURCES += src/main.cpp \
            src/parser/*.cpp \
            src/mainwindow/*.cpp \
-           src/circuit/*.cpp
+           src/circuit/*.cpp \
+           src/plot/*.cpp
 
 
 RESOURCES += src/mainwindow/mainwindow.qrc

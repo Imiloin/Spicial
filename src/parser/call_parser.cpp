@@ -27,7 +27,7 @@ Circuit *callNetlistParser(const char* fileName) {
     printf("Title: %s", title);
 
     // create circuit instance
-    Circuit *circuit = new Circuit;
+    Circuit *circuit = new Circuit(fileName);
 
     yy::Parser parser(circuit);
     int ret = parser.parse();

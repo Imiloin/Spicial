@@ -1,10 +1,14 @@
 #include "Circuit.h"
 #include <QDebug>
 
-Circuit::Circuit() {
+Circuit::Circuit(const std::string& file) {
+    this->file_path = file;
+
     // add ground node, name is "0"
     std::string gnd = "0";
     nodes.push_back(gnd);
+
+    simulation_type = -1;
 
     MNA_DC_T = nullptr;
     RHS_DC_T = nullptr;
@@ -45,8 +49,20 @@ int Circuit::getNodeIndex(const std::string& name) {  // 获取节点的编号
     return std::distance(nodes.begin(), it);
 }
 
+int Circuit::getNodeIndexExgnd(
+    const std::string& name) {  // 获取节点的编号，不包括地
+    // if (!nodes.empty() && nodes.front() == "0") {
+    //     nodes.erase(nodes.begin());
+    // }
+    return getNodeIndex(name) - 1;
+}
+
 int Circuit::getNodeNum() const {
     return nodes.size();
+}
+
+int Circuit::getNodeNumExgnd() const {
+    return nodes.size() - 1;
 }
 
 void Circuit::printNodes() const {
@@ -795,6 +811,7 @@ void Circuit::DCSimulation(int analysis_type,
     for (double iter = start; iter <= end; iter += increment) {
         iter_values.push_back(iter);
     }
+    simulation_type = ANALYSIS_DC;
 
     qDebug() << "DCSimulation() analysis_type: " << analysis_type;
     switch (analysis_type) {
@@ -899,6 +916,8 @@ void Circuit::ACSimulation(int analysis_type,
     if (MNA_AC_T == nullptr || RHS_AC_T == nullptr) {
         this->generateACMNA();
     }
+    simulation_type = ANALYSIS_AC;
+
     iter_name = "frequency";
     int node_num = getNodeNum();
     std::complex<double> j(0, 1);
@@ -986,8 +1005,8 @@ void Circuit::ACSimulation(int analysis_type,
         } else {
             // x.print("ACSimulation() x:");
         }
-        arma::vec absx = arma::abs(x);
-        iter_results.push_back(absx);
+        // arma::vec absx = arma::abs(x);
+        iter_cresults.push_back(x);
     }
 }
 
@@ -1075,6 +1094,7 @@ void Circuit::TranSimulation(double step, double stop_time, double start_time) {
     if (MNA_TRAN_T == nullptr || RHS_TRAN_T == nullptr) {
         this->generateTranMNA();
     }
+    simulation_type = ANALYSIS_TRAN;
     double h = step;  // 为简化处理，使用恒定步长
     iter_name = "time";
     int node_num = getNodeNum();
@@ -1192,19 +1212,273 @@ void Circuit::TranSimulation(double step, double stop_time, double start_time) {
     }
 }
 
+void Circuit::printAnalysis(int analysis_type,
+                            const std::vector<Variable>& var_list) {
+    // create xdata
+    xdata = ColumnData{iter_name, iter_values};
+
+    // assert analysis type is correct
+    switch (analysis_type) {
+        case TOKEN_ANALYSIS_OP: {
+            return;
+        }
+        case TOKEN_ANALYSIS_DC: {
+            if (simulation_type != ANALYSIS_DC) {
+                qDebug()
+                    << "printAnalysis() simulation_type error, DC expected.";
+                qDebug() << "Current simulation_type: " << simulation_type;
+                return;
+            }
+            break;
+        }
+        case TOKEN_ANALYSIS_AC: {
+            if (simulation_type != ANALYSIS_AC) {
+                qDebug()
+                    << "printAnalysis() simulation_type error, AC expected.";
+                qDebug() << "Current simulation_type: " << simulation_type;
+                return;
+            }
+            break;
+        }
+        case TOKEN_ANALYSIS_TRAN: {
+            if (simulation_type != ANALYSIS_TRAN) {
+                qDebug()
+                    << "printAnalysis() simulation_type error, TRAN expected.";
+                qDebug() << "Current simulation_type: " << simulation_type;
+                return;
+            }
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
+    // create ydata
+    for (const auto& var : var_list) {
+        for (const auto& node_branch : var.nodes) {
+            ColumnData y;
+            switch (var.type) {
+                case TOKEN_VAR_VOLTAGE_REAL: {
+                    if (analysis_type != TOKEN_ANALYSIS_AC) {
+                        break;
+                    }
+                    y.name = "VR(" + node_branch + ")";
+                    int id_node = getNodeIndexExgnd(node_branch);
+                    for (const auto& cresult : iter_cresults) {
+                        y.values.push_back(real(cresult(id_node)));
+                    }
+                    break;
+                }
+                case TOKEN_VAR_VOLTAGE_IMAG: {
+                    if (analysis_type != TOKEN_ANALYSIS_AC) {
+                        break;
+                    }
+                    y.name = "VI(" + node_branch + ")";
+                    int id_node = getNodeIndexExgnd(node_branch);
+                    for (const auto& cresult : iter_cresults) {
+                        y.values.push_back(imag(cresult(id_node)));
+                    }
+                    break;
+                }
+                case TOKEN_VAR_VOLTAGE_MAG: {
+                    y.name = "V(" + node_branch + ")";
+                    int id_node = getNodeIndexExgnd(node_branch);
+                    if (analysis_type != TOKEN_ANALYSIS_AC) {
+                        for (const auto& result : iter_results) {
+                            y.values.push_back(result(id_node));
+                        }
+                    } else {
+                        for (const auto& cresult : iter_cresults) {
+                            y.values.push_back(abs(cresult(id_node)));
+                        }
+                    }
+                    break;
+                }
+                case TOKEN_VAR_VOLTAGE_PHASE: {
+                    if (analysis_type != TOKEN_ANALYSIS_AC) {
+                        break;
+                    }
+                    y.name = "VP(" + node_branch + ")";
+                    int id_node = getNodeIndexExgnd(node_branch);
+                    for (const auto& cresult : iter_cresults) {
+                        y.values.push_back(arg(cresult(id_node)));
+                    }
+                    break;
+                }
+                case TOKEN_VAR_VOLTAGE_DB: {
+                    if (analysis_type != TOKEN_ANALYSIS_AC) {
+                        break;
+                    }
+                    y.name = "VDB(" + node_branch + ")";
+                    int id_node = getNodeIndexExgnd(node_branch);
+                    for (const auto& cresult : iter_cresults) {
+                        y.values.push_back(20 * log10(abs(cresult(id_node))));
+                    }
+                    break;
+                }
+                case TOKEN_VAR_CURRENT_REAL: {
+                    if (analysis_type != TOKEN_ANALYSIS_AC) {
+                        break;
+                    }
+                    y.name = "IR(" + node_branch + ")";
+                    int node_num = getNodeNumExgnd();
+                    int id_branch = getBranchIndex(node_branch) + node_num;
+                    for (const auto& cresult : iter_cresults) {
+                        y.values.push_back(real(cresult(id_branch)));
+                    }
+                    break;
+                }
+                case TOKEN_VAR_CURRENT_IMAG: {
+                    if (analysis_type != TOKEN_ANALYSIS_AC) {
+                        break;
+                    }
+                    y.name = "II(" + node_branch + ")";
+                    int node_num = getNodeNumExgnd();
+                    int id_branch = getBranchIndex(node_branch) + node_num;
+                    for (const auto& cresult : iter_cresults) {
+                        y.values.push_back(imag(cresult(id_branch)));
+                    }
+                    break;
+                }
+                case TOKEN_VAR_CURRENT_MAG: {
+                    y.name = "I(" + node_branch + ")";
+                    int node_num = getNodeNumExgnd();
+                    int id_branch = getBranchIndex(node_branch) + node_num;
+                    if (analysis_type != TOKEN_ANALYSIS_AC) {
+                        for (const auto& result : iter_results) {
+                            y.values.push_back(result(id_branch));
+                        }
+                    } else {
+                        for (const auto& cresult : iter_cresults) {
+                            y.values.push_back(abs(cresult(id_branch)));
+                        }
+                    }
+                    break;
+                }
+                case TOKEN_VAR_CURRENT_PHASE: {
+                    if (analysis_type != TOKEN_ANALYSIS_AC) {
+                        break;
+                    }
+                    y.name = "IP(" + node_branch + ")";
+                    int node_num = getNodeNumExgnd();
+                    int id_branch = getBranchIndex(node_branch) + node_num;
+                    for (const auto& cresult : iter_cresults) {
+                        y.values.push_back(arg(cresult(id_branch)));
+                    }
+                    break;
+                }
+                case TOKEN_VAR_CURRENT_DB: {
+                    if (analysis_type != TOKEN_ANALYSIS_AC) {
+                        break;
+                    }
+                    y.name = "IDB(" + node_branch + ")";
+                    int node_num = getNodeNumExgnd();
+                    int id_branch = getBranchIndex(node_branch) + node_num;
+                    for (const auto& cresult : iter_cresults) {
+                        y.values.push_back(20 * log10(abs(cresult(id_branch))));
+                    }
+                    break;
+                }
+                default: {
+                    // qDebug << "printAnalysis() No such variable type!";
+                    break;
+                }
+            }
+            ydata.push_back(y);
+        }
+    }
+
+    // print xdata, ydata and export to csv file
+    std::filesystem::path p(file_path);
+    p.replace_extension(".csv");
+    std::string csv_file_path = p.string();
+    std::ofstream file(csv_file_path);
+
+    // 打印并写入 CSV 文件的头部
+    std::cout << xdata.name;
+    file << xdata.name;
+    for (const auto& column : ydata) {
+        std::cout << "," << column.name;
+        file << "," << column.name;
+    }
+    std::cout << "\n";
+    file << "\n";
+
+    // 打印并写入数据
+    for (size_t i = 0; i < xdata.values.size(); ++i) {
+        std::cout << xdata.values[i];
+        file << xdata.values[i];
+        for (const auto& column : ydata) {
+            std::cout << "," << column.values[i];
+            file << "," << column.values[i];
+        }
+        std::cout << "\n";
+        file << "\n";
+    }
+
+    file.close();
+}
+
+void Circuit::plotAnalysis(int analysis_type,
+                           const std::vector<Variable>& var_list) {
+    printAnalysis(analysis_type, var_list);
+    callPlot(xdata, ydata);
+}
+
 void Circuit::printResults() const {
-    auto iter1 = iter_values.begin();
-    auto iter2 = iter_results.begin();
+    switch (simulation_type) {
+        case ANALYSIS_DC: {
+            auto iter1 = iter_values.begin();
+            auto iter2 = iter_results.begin();
+            // 输出迭代结果
+            while (iter1 != iter_values.end() && iter2 != iter_results.end()) {
+                double value = *iter1;
+                auto result = *iter2;
 
-    // 输出迭代结果
-    while (iter1 != iter_values.end() && iter2 != iter_results.end()) {
-        double value = *iter1;
-        arma::vec result = *iter2;
+                printf("%s = %e: \n", iter_name.c_str(), value);
+                std::cout << result << std::endl;
 
-        printf("%s = %e: \n", iter_name.c_str(), value);
-        std::cout << result << std::endl;
+                ++iter1;
+                ++iter2;
+            }
+            break;
+        }
+        case ANALYSIS_AC: {
+            auto iter1 = iter_values.begin();
+            auto iter2 = iter_cresults.begin();
+            // 输出迭代结果（复数）
+            while (iter1 != iter_values.end() && iter2 != iter_cresults.end()) {
+                double value = *iter1;
+                auto result = *iter2;
 
-        ++iter1;
-        ++iter2;
+                printf("%s = %e: \n", iter_name.c_str(), value);
+                std::cout << result << std::endl;
+
+                ++iter1;
+                ++iter2;
+            }
+            break;
+        }
+        case ANALYSIS_TRAN: {
+            auto iter1 = iter_values.begin();
+            auto iter2 = iter_results.begin();
+            // 输出迭代结果
+            while (iter1 != iter_values.end() && iter2 != iter_results.end()) {
+                double value = *iter1;
+                auto result = *iter2;
+
+                printf("%s = %e: \n", iter_name.c_str(), value);
+                std::cout << result << std::endl;
+
+                ++iter1;
+                ++iter2;
+            }
+            break;
+        }
+        default: {
+            qDebug() << "printResults() simulation_type error.";
+            break;
+        }
     }
 }

@@ -576,6 +576,7 @@ print: PRINT analysis_type variable_list
             printf("\b\b), ");  // \b is not recommended
         }
         printf("\b\b)\n");
+        circuit->printAnalysis($2, *$3);
     }
 ;
 
@@ -639,6 +640,7 @@ plot: PLOT analysis_type variable_list
             printf("\b\b), ");  // \b is not recommended
         }
         printf("\b\b)\n");
+        circuit->plotAnalysis($2, *$3);
     }
 ;
 
