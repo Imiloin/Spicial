@@ -49,7 +49,7 @@ void callPlot(ColumnData xdata, std::vector<ColumnData> ydata) {
     std::nth_element(xCopy.begin(), xCopy.begin() + xCopy.size() / 2,
                      xCopy.end());
     double median = xCopy[xCopy.size() / 2];
-    if (xMax / median > 1000) {
+    if (xMax / median > 100) {
         customPlot->xAxis->setScaleType(QCPAxis::stLogarithmic);
         QSharedPointer<QCPAxisTickerLog> logTicker(new QCPAxisTickerLog);
         customPlot->xAxis->setTicker(logTicker);
@@ -64,11 +64,30 @@ void callPlot(ColumnData xdata, std::vector<ColumnData> ydata) {
         customPlot->yAxis->range().lower - 0.1 * yRange,
         customPlot->yAxis->range().upper + 0.1 * yRange);
 
+    // Set legend position to top left
+    // customPlot->axisRect()->insetLayout()->setInsetAlignment(
+    //     0, Qt::AlignTop | Qt::AlignLeft);
+
     // Allow user to drag axis ranges with mouse, zoom with mouse wheel and
     // select graphs by clicking
     customPlot->replot();
-    customPlot->setMinimumSize(450, 300);
+    customPlot->setMinimumSize(600, 400);
     customPlot->setAttribute(Qt::WA_DeleteOnClose);
-    customPlot->legend->setVisible(true);  // Show legend
+    // customPlot->legend->setVisible(true);  // Show legend
+
+    // 设置图例行优先排列
+    customPlot->legend->setFillOrder(QCPLayoutGrid::foColumnsFirst);
+    // 设置4个图例自动换行
+    customPlot->legend->setWrap(4);
+    // 设置图例可见
+    customPlot->legend->setVisible(true);
+    // 设置图例位置，这里选择显示在QCPAxisRect上方
+    customPlot->plotLayout()->insertRow(0);
+    customPlot->plotLayout()->addElement(0, 0, customPlot->legend);
+    // 设置显示比例
+    customPlot->plotLayout()->setRowStretchFactor(0, 0.001);
+    // 设置边框隐藏
+    customPlot->legend->setBorderPen(Qt::NoPen);
+
     customPlot->show();
 }
