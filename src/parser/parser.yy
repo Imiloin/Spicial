@@ -70,9 +70,11 @@ bison -v -d -o src/parser.cpp src/parser.yy
 %token<f> VALUE VALUE_VOLTAGE VALUE_CURRENT VALUE_RESISTANCE VALUE_CAPACITANCE VALUE_INDUCTANCE VALUE_TIME VALUE_LENGTH VALUE_FREQUENCY
 
 // component
-%token<s> RESISTOR CAPACITOR INDUCTOR VCVS CCCS VCCS CCVS VOLTAGE_SOURCE CURRENT_SOURCE
+%token<s> RESISTOR CAPACITOR INDUCTOR VCVS CCCS VCCS CCVS VOLTAGE_SOURCE CURRENT_SOURCE DIODE
 
 %token<s> NODE
+
+%token<s> MODELNAME
 
 // keyword parameter
 %token IC_EQUAL
@@ -99,7 +101,8 @@ bison -v -d -o src/parser.cpp src/parser.yy
 %type<f> value value_voltage value_current value_resistance value_capacitance value_inductance value_time value_length value_frequency
 %type<n> analysis_type ac_type var_type
 %type<f> ic_param_voltage ic_param_current
-%type<s> node
+%type<s> node modelname
+%type<s> diode_model
 %type<v> node_list
 %type<var> variable
 %type<var_list> variable_list
@@ -142,6 +145,7 @@ component: component_resistor
             | component_ccvs
             | component_voltage_source
             | component_current_source
+            | component_diode
 ;
 
 
@@ -296,6 +300,24 @@ component_current_source: CURRENT_SOURCE node node value_current
             default:
                 printf("!No such function type\n");
         }
+    }
+;
+
+component_diode: DIODE node node diode_model ic_param_voltage
+        {
+            printf("[Component] Device(Diode) Name(%s) N+(%s) N-(%s) Model(%s) IC=(%e)\n", $1, $2, $3, $4, $5);
+            circuit->parseDiode($1, $2, $3, $4, $5);
+        }
+        | DIODE node node diode_model
+        {
+            printf("[Component] Device(Diode) Name(%s) N+(%s) N-(%s) Model(%s)\n", $1, $2, $3, $4);
+            circuit->parseDiode($1, $2, $3, $4, 0);
+        }
+;
+
+diode_model: modelname
+    {
+        $$ = $1;
     }
 ;
 
@@ -742,6 +764,14 @@ node: NODE
     }
 ;
 
+modelname: MODELNAME
+    {
+        $$ = new char[strlen($1) + 1];
+        strcpy($$, $1);
+        std::transform($$, $$ + strlen($1), $$, ::tolower);  // convert to lower case
+        $$[strlen($1)] = '\0';
+    }
+;
 
 var_type: VAR_TYPE_VOLTAGE_REAL
     {

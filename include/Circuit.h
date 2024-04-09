@@ -12,6 +12,7 @@
 #include <unordered_set>
 #include <vector>
 #include "Component.h"
+#include "Model.h"
 #include "call_plot.h"
 #include "linetype.h"
 #include "structs.h"
@@ -128,6 +129,12 @@ class Circuit {
                             const Function& func);
     void addCurrentSource(CurrentSource* current_source);
 
+    void parseDiode(const std::string& name,
+                    const std::string& nplus,
+                    const std::string& nminus,
+                    const std::string& model,
+                    double initial_voltage = 0);
+
     void generateDCMNA();
     void generateACMNA();
     void generateTranMNA();
@@ -162,8 +169,9 @@ class Circuit {
 
     std::vector<std::string> nodes;
     std::vector<std::string> nodes_exgnd;  // exclude gnd
-    std::vector<std::string> branches;  // use component name as branch name
+    std::vector<std::string> branches;     // use component name as branch name
     std::vector<Component*> components;
+    std::vector<Model*> models;
 
     // set only contains names
     std::unordered_set<std::string> resistor_name_set = {};

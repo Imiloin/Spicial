@@ -16,6 +16,11 @@ Circuit::Circuit(const std::string& file) {
     RHS_AC_T = nullptr;
     MNA_TRAN_T = nullptr;
     RHS_TRAN_T = nullptr;
+
+    /////// test only ////////
+    Model* diode1 = new DiodeModel("diode1");
+    models.push_back(diode1);
+    /////// delete after test ////////
 }
 
 Circuit::~Circuit() {
@@ -515,6 +520,14 @@ void Circuit::parseCurrentSource(const std::string& name,
 
 void Circuit::addCurrentSource(CurrentSource* current_source) {
     current_sources.push_back(current_source);
+}
+
+void Circuit::parseDiode(const std::string& name,
+                         const std::string& nplus,
+                         const std::string& nminus,
+                         const std::string& model,
+                         double initial_voltage) {
+    return;
 }
 
 void Circuit::generateDCMNA() {

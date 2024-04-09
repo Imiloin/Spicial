@@ -212,4 +212,24 @@ class CurrentSource : public Component {
     Function* getFunction() const;
 };
 
+// Diode
+class Diode : public Component {
+   private:
+    std::string nplus;
+    std::string nminus;
+    std::string model;
+    double initial_voltage;
+
+   public:
+    Diode(const std::string& name,
+          const std::string& nplus,
+          const std::string& nminus,
+          const std::string& model,
+          double initial_voltage);
+    std::string getNplus() const;
+    std::string getNminus() const;
+    std::string getModel() const;
+    double getInitialVoltage() const;
+};
+
 #endif  // SPICIAL_COMPONENT_H

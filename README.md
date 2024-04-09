@@ -9,8 +9,14 @@ A SPICE-like circuit simulator, written in C++.
 
 ```bash
 sudo apt update
+
 # install Qt5
 sudo apt install –y qtbase5-dev qt5-qmake
+
+# install flex&bison
+sudo apt install libfl-dev
+sudo apt install libbison-dev
+
 # install armadillo
 sudo apt install libarmadillo-dev
 ```

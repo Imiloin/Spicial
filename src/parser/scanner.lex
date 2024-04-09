@@ -54,6 +54,7 @@ bool optional_token = false;
 %}
 
 %x NODES VALUES VARIABLES FUNCTIONS
+%x MODELNAMES
 %x KEYWORD_PARAM
 %x ANALYSIS_TYPE
 %x DC_SOURCE
@@ -82,6 +83,7 @@ VCCS             [Gg]{ALPHANUM}+
 CCVS             [Hh]{ALPHANUM}+
 VOLTAGE_SOURCE   [Vv]{ALPHANUM}+
 CURRENT_SOURCE   [Ii]{ALPHANUM}+
+DIODE            [Dd]{ALPHANUM}+
 
 /* analysis */
 OP        ^[\.][Oo][Pp]
@@ -226,6 +228,14 @@ END              [\.][Ee][Nn][Dd]
     current_token_needed = 2;
     return token::CURRENT_SOURCE;
 }
+{DIODE} {
+    BEGIN(NODES); 
+    first_token_of_current_line = strdup(yytext); 
+    yylval->s = copyStrToupper(yytext); 
+    current_line_type = COMPONENT_DIODE;
+    current_token_needed = 2;
+    return token::DIODE;
+}
 
 %{
 /* analysis */
@@ -306,6 +316,8 @@ END              [\.][Ee][Nn][Dd]
                 BEGIN(ANALYSIS_TYPE); optional_token = true; break;
             case COMPONENT_CURRENT_SOURCE:
                 BEGIN(VALUES); current_token_needed = 1; break;
+            case COMPONENT_DIODE:
+                BEGIN(MODELNAMES); current_token_needed = 1; break;
             case ANALYSIS_PRINT:
             case ANALYSIS_PLOT:
                 BEGIN(VARIABLES); current_token_needed = 1; break;
@@ -354,6 +366,56 @@ END              [\.][Ee][Nn][Dd]
         }
     }
     return token::RPAREN;
+}
+}
+
+<MODELNAMES>{
+%{
+/* modelnames */
+%}
+{STRING} {
+    yylval->s = copyStrTolower(yytext); 
+    if ((--current_token_needed) == 0) {
+        switch(current_line_type) {
+            case COMPONENT_RESISTOR:
+            case COMPONENT_CAPACITOR:
+            case COMPONENT_INDUCTOR:
+            case COMPONENT_VCVS:
+            case COMPONENT_CCCS:
+            case COMPONENT_VCCS:
+            case COMPONENT_CCVS:
+            case COMPONENT_VOLTAGE_SOURCE:
+            case COMPONENT_CURRENT_SOURCE:
+            case COMPONENT_DIODE:
+                BEGIN(KEYWORD_PARAM); optional_token = true; break;
+            default:
+                printf("Current line type is %d\n", current_line_type);
+                printf("ERROR_UNKOWN_LINE_TYPE when parsing MODELNAMES\n");
+        }
+    }
+    return token::MODELNAME;
+}
+{INTEGER} {
+    yylval->s = copyStrTolower(yytext); 
+    if ((--current_token_needed) == 0) {
+        switch(current_line_type) {
+            case COMPONENT_RESISTOR:
+            case COMPONENT_CAPACITOR:
+            case COMPONENT_INDUCTOR:
+            case COMPONENT_VCVS:
+            case COMPONENT_CCCS:
+            case COMPONENT_VCCS:
+            case COMPONENT_CCVS:
+            case COMPONENT_VOLTAGE_SOURCE:
+            case COMPONENT_CURRENT_SOURCE:
+            case COMPONENT_DIODE:
+                BEGIN(KEYWORD_PARAM); optional_token = true; break;
+            default:
+                printf("Current line type is %d\n", current_line_type);
+                printf("ERROR_UNKOWN_LINE_TYPE when parsing MODELNAMES\n");
+        }
+    }
+    return token::MODELNAME;
 }
 }
 

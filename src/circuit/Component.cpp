@@ -3,6 +3,7 @@
 // Component
 Component::Component(const std::string& name) {
     this->name = name;
+    type = -1;
 }  // 构造函数(构造函数不能是虚函数)
 
 Component::~Component() {}  // 析构函数(虚函数)
@@ -316,4 +317,34 @@ void CurrentSource::setFunction(const Function* func) {
 
 Function* CurrentSource::getFunction() const {
     return function;
+}
+
+// **** Diode ****
+Diode::Diode(const std::string& name,
+             const std::string& nplus,
+             const std::string& nminus,
+             const std::string& model,
+             double initial_voltage)
+    : Component(name),
+      nplus(nplus),
+      nminus(nminus),
+      model(model),
+      initial_voltage(initial_voltage) {
+    type = COMPONENT_DIODE;
+}
+
+std::string Diode::getNplus() const {
+    return nplus;
+}
+
+std::string Diode::getNminus() const {
+    return nminus;
+}
+
+std::string Diode::getModel() const {
+    return model;
+}
+
+double Diode::getInitialVoltage() const {
+    return initial_voltage;
 }
