@@ -177,6 +177,7 @@ void Circuit::printSize() const {
               << std::endl;
     std::cout << "Current Source: " << currentsource_name_set.size()
               << std::endl;
+    std::cout << "Diode: " << diode_name_set.size() << std::endl;
 }
 
 double Circuit::calcFunctionAtTime(const Function* func,
@@ -574,7 +575,7 @@ void Circuit::parseDiode(const std::string& name,
     if (!hasNode(nminus)) {
         addNode(nminus);
     }
-    if (!hasModel) {
+    if (!hasModel(model)) {
         qDebug() << "parseDiode(" << name.c_str() << ")";
         std::cerr << "Parse error: Diode " << name << " model not found.\n";
         return;
@@ -868,7 +869,7 @@ void Circuit::printMNATranTemplate() const {
     RHS.print("RHS_Tran_template (excluding ground):");
 }
 
-void Circuit::DCSimulation(int analysis_type,
+void Circuit::DCSimulation(int source_type,
                            const std::string& source,
                            double start,
                            double end,
@@ -881,8 +882,8 @@ void Circuit::DCSimulation(int analysis_type,
     }
     simulation_type = ANALYSIS_DC;
 
-    qDebug() << "DCSimulation() analysis_type: " << analysis_type;
-    switch (analysis_type) {
+    qDebug() << "DCSimulation() source_type: " << source_type;
+    switch (source_type) {
         case (COMPONENT_VOLTAGE_SOURCE): {
             qDebug() << "DCSimulation() source: " << source.c_str();
             iter_name = "voltage(" + source + ")";
@@ -977,7 +978,7 @@ void Circuit::DCSimulation(int analysis_type,
     }
 }
 
-void Circuit::ACSimulation(int analysis_type,
+void Circuit::ACSimulation(int ac_type,
                            double n,
                            double freq_start,
                            double freq_end) {
@@ -989,10 +990,10 @@ void Circuit::ACSimulation(int analysis_type,
     iter_name = "frequency";
     int node_num = getNodeNum();
     std::complex<double> j(0, 1);
-    qDebug() << "ACSimulation() analysis_type: " << analysis_type;
+    qDebug() << "ACSimulation() ac_type: " << ac_type;
 
     // 获取仿真的频率点
-    switch (analysis_type) {
+    switch (ac_type) {
         case (TOKEN_DEC): {
             int n_per_dec = std::round(n);
             double ratio = pow(10.0, 1.0 / n_per_dec);
@@ -1275,8 +1276,8 @@ void Circuit::TranSimulation(double step, double stop_time, double start_time) {
         iter_results.push_back(x);    // start_time 的解
     }
     // 求解 (start_time, stop_time] 的解 //
-    std::cout << (time < stop_time) << std::endl;
-    for (time += h; time <= stop_time; time += h) {
+    // std::cout << (time < stop_time) << std::endl;
+    for (time += h; time <= stop_time; time += step) {
         x = tranBackEuler(time, h, step, stop_time, x);
         iter_values.push_back(time);  // 保存仿真时间点
         iter_results.push_back(x);    // time 的解

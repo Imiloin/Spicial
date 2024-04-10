@@ -36,6 +36,7 @@ HEADERS += include/*.h \
 SOURCES += src/main.cpp \
            src/parser/*.cpp \
            src/mainwindow/*.cpp \
+           src/netlist/*.cpp \
            src/circuit/*.cpp \
            src/plot/*.cpp
 

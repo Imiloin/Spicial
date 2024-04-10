@@ -38,7 +38,7 @@ bison -v -d -o src/parser.cpp src/parser.yy
 #include <vector>
 #include <algorithm>
 #include <QDebug>
-#include "Circuit.h"
+#include "Netlist.h"
 #include "Component.h"
 #include "linetype.h"
 #include "tokentype.h"
@@ -48,7 +48,7 @@ bison -v -d -o src/parser.cpp src/parser.yy
 }
 
 /* define input */
-%parse-param {Circuit *circuit} 
+%parse-param {Netlist *netlist} 
 
 %union
 {
@@ -153,102 +153,102 @@ component: component_resistor
 component_resistor: RESISTOR node node value_resistance
         {
             printf("[Component] Device(Resistor) Name(%s) N+(%s) N-(%s) Value(%e)\n", $1, $2, $3, $4);
-            circuit->parseResistor($1, $2, $3, $4);
+            netlist->parseResistor($1, $2, $3, $4);
         }
 ;
 
 component_capacitor: CAPACITOR node node value_capacitance ic_param_voltage
         {
             printf("[Component] Device(Capacitor) Name(%s) N+(%s) N-(%s) Value(%e) IC=(%e)\n", $1, $2, $3, $4, $5);
-            circuit->parseCapacitor($1, $2, $3, $4, $5);
+            netlist->parseCapacitor($1, $2, $3, $4, $5);
         }
         | CAPACITOR node node value_capacitance
         {
             printf("[Component] Device(Capacitor) Name(%s) N+(%s) N-(%s) Value(%e)\n", $1, $2, $3, $4);
-            circuit->parseCapacitor($1, $2, $3, $4, 0);
+            netlist->parseCapacitor($1, $2, $3, $4, 0);
         }
 ;
 
 component_inductor: INDUCTOR node node value_inductance ic_param_current
         {
             printf("[Component] Device(Inductor) Name(%s) N+(%s) N-(%s) Value(%e) IC=(%e)\n", $1, $2, $3, $4, $5);
-            circuit->parseInductor($1, $2, $3, $4, $5);
+            netlist->parseInductor($1, $2, $3, $4, $5);
         }
         | INDUCTOR node node value_inductance
         {
             printf("[Component] Device(Inductor) Name(%s) N+(%s) N-(%s) Value(%e)\n", $1, $2, $3, $4);
-            circuit->parseInductor($1, $2, $3, $4, 0);
+            netlist->parseInductor($1, $2, $3, $4, 0);
         }
 ;
 
 component_vcvs: VCVS node node node node value
     {
         printf("[Component] Dependent Source(VCVS) Name(%s) N+(%s) N-(%s) NC+(%s) NC-(%s) Value(%e)\n", $1, $2, $3, $4, $5, $6);
-        circuit->parseVCVS($1, $2, $3, $4, $5, $6);
+        netlist->parseVCVS($1, $2, $3, $4, $5, $6);
     }
 ;
 
 component_cccs: CCCS node node node value
     {
         printf("[Component] Dependent Source(CCCS) Name(%s) N+(%s) N-(%s) NC+(%s) Value(%e)\n", $1, $2, $3, $4, $5);
-        circuit->parseCCCS($1, $2, $3, $4, $5);
+        netlist->parseCCCS($1, $2, $3, $4, $5);
     }
 ;
 
 component_vccs: VCCS node node node node value
     {
         printf("[Component] Dependent Source(VCCS) Name(%s) N+(%s) N-(%s) NC+(%s) NC-(%s) Value(%e)\n", $1, $2, $3, $4, $5, $6);
-        circuit->parseVCCS($1, $2, $3, $4, $5, $6);
+        netlist->parseVCCS($1, $2, $3, $4, $5, $6);
     }
 ;
 
 component_ccvs: CCVS node node node value
     {
         printf("[Component] Dependent Source(CCVS) Name(%s) N+(%s) N-(%s) NC+(%s) Value(%e)\n", $1, $2, $3, $4, $5);
-        circuit->parseCCVS($1, $2, $3, $4, $5);
+        netlist->parseCCVS($1, $2, $3, $4, $5);
     }
 ;
 
 component_voltage_source: VOLTAGE_SOURCE node node value_voltage
     {
         printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) Value(%f)\n", $1, $2, $3, $4);
-        circuit->parseVoltageSource($1, $2, $3, $4, 0, 0);
+        netlist->parseVoltageSource($1, $2, $3, $4, 0, 0);
     }
     | VOLTAGE_SOURCE node node TYPE_DC value_voltage
     {
         printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) DC Value(%f)\n", $1, $2, $3, $5);
-        circuit->parseVoltageSource($1, $2, $3, $5, 0, 0);
+        netlist->parseVoltageSource($1, $2, $3, $5, 0, 0);
     }
     | VOLTAGE_SOURCE node node value_voltage TYPE_AC value_voltage
     {
         printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f)\n", $1, $2, $3, $4, $6);
-        circuit->parseVoltageSource($1, $2, $3, $4, $6, 0);
+        netlist->parseVoltageSource($1, $2, $3, $4, $6, 0);
     }
     | VOLTAGE_SOURCE node node value_voltage TYPE_AC value_voltage value
     {
         printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f) Phase(%f)\n", $1, $2, $3, $4, $6, $7);
-        circuit->parseVoltageSource($1, $2, $3, $4, $6, $7);
+        netlist->parseVoltageSource($1, $2, $3, $4, $6, $7);
     }
     | VOLTAGE_SOURCE node node TYPE_DC value_voltage TYPE_AC value_voltage
     {
         printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f)\n", $1, $2, $3, $5, $7);
-        circuit->parseVoltageSource($1, $2, $3, $5, $7, 0);
+        netlist->parseVoltageSource($1, $2, $3, $5, $7, 0);
     }
     | VOLTAGE_SOURCE node node TYPE_DC value_voltage TYPE_AC value_voltage value
     {
         printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f) Phase(%f)\n", $1, $2, $3, $5, $7, $8);
-        circuit->parseVoltageSource($1, $2, $3, $5, $7, $8);
+        netlist->parseVoltageSource($1, $2, $3, $5, $7, $8);
     }
     | VOLTAGE_SOURCE node node function
     {
         switch ($4->type) {
             case TOKEN_FUNC_SIN:
                 printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) Sin Function(OffsetVolt(%f) Amplitude(%f) Freq(%e) DelayTime(%e) DampingFactor(%e) PhaseDelay(%f))\n", $1, $2, $3, $4->values[0], $4->values[1], $4->values[2], $4->values[3], $4->values[4], $4->values[5]);
-                circuit->parseVoltageSource($1, $2, $3, *$4);
+                netlist->parseVoltageSource($1, $2, $3, *$4);
                 break;
             case TOKEN_FUNC_PULSE:
                 printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) Pulse Function(LowVolt(%f) HightVolt(%f) Delaytime(%e) Risetime(%e) Falltime(%e) PulseWidth(%e) Period(%e))\n", $1, $2, $3, $4->values[0], $4->values[1], $4->values[2], $4->values[3], $4->values[4], $4->values[5], $4->values[6]);
-                circuit->parseVoltageSource($1, $2, $3, *$4);
+                netlist->parseVoltageSource($1, $2, $3, *$4);
                 break;
             default:
                 printf("!No such function type\n");
@@ -259,43 +259,43 @@ component_voltage_source: VOLTAGE_SOURCE node node value_voltage
 component_current_source: CURRENT_SOURCE node node value_current
     {
         printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) Value(%f)\n", $1, $2, $3, $4);
-        circuit->parseCurrentSource($1, $2, $3, $4, 0, 0);
+        netlist->parseCurrentSource($1, $2, $3, $4, 0, 0);
     }
     | CURRENT_SOURCE node node TYPE_DC value_current
     {
         printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) DC Value(%f)\n", $1, $2, $3, $5);
-        circuit->parseCurrentSource($1, $2, $3, $5, 0, 0);
+        netlist->parseCurrentSource($1, $2, $3, $5, 0, 0);
     }
     | CURRENT_SOURCE node node value_current TYPE_AC value_current
     {
         printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f)\n", $1, $2, $3, $4, $6);
-        circuit->parseCurrentSource($1, $2, $3, $4, $6, 0);
+        netlist->parseCurrentSource($1, $2, $3, $4, $6, 0);
     }
     | CURRENT_SOURCE node node value_current TYPE_AC value_current value
     {
         printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f) Phase(%f)\n", $1, $2, $3, $4, $6, $7);
-        circuit->parseCurrentSource($1, $2, $3, $4, $6, $7);
+        netlist->parseCurrentSource($1, $2, $3, $4, $6, $7);
     }
     | CURRENT_SOURCE node node TYPE_DC value_current TYPE_AC value_current
     {
         printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f)\n", $1, $2, $3, $5, $7);
-        circuit->parseCurrentSource($1, $2, $3, $5, $7, 0);
+        netlist->parseCurrentSource($1, $2, $3, $5, $7, 0);
     }
     | CURRENT_SOURCE node node TYPE_DC value_current TYPE_AC value_current value
     {
         printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f) Phase(%f)\n", $1, $2, $3, $5, $7, $8);
-        circuit->parseCurrentSource($1, $2, $3, $5, $7, $8);
+        netlist->parseCurrentSource($1, $2, $3, $5, $7, $8);
     }
     | CURRENT_SOURCE node node function
     {
         switch ($4->type) {
             case TOKEN_FUNC_SIN:
                 printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) Sin Function(OffsetVolt(%f) Amplitude(%f) Freq(%e) DelayTime(%e) DampingFactor(%e) PhaseDelay(%f))\n", $1, $2, $3, $4->values[0], $4->values[1], $4->values[2], $4->values[3], $4->values[4], $4->values[5]);
-                circuit->parseCurrentSource($1, $2, $3, *$4);
+                netlist->parseCurrentSource($1, $2, $3, *$4);
                 break;
             case TOKEN_FUNC_PULSE:
                 printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) Pulse Function(LowVolt(%f) HightVolt(%f) Delaytime(%e) Risetime(%e) Falltime(%e) PulseWidth(%e) Period(%e))\n", $1, $2, $3, $4->values[0], $4->values[1], $4->values[2], $4->values[3], $4->values[4], $4->values[5], $4->values[6]);
-                circuit->parseCurrentSource($1, $2, $3, *$4);
+                netlist->parseCurrentSource($1, $2, $3, *$4);
                 break;
             default:
                 printf("!No such function type\n");
@@ -306,12 +306,12 @@ component_current_source: CURRENT_SOURCE node node value_current
 component_diode: DIODE node node diode_model ic_param_voltage
         {
             printf("[Component] Device(Diode) Name(%s) N+(%s) N-(%s) Model(%s) IC=(%e)\n", $1, $2, $3, $4, $5);
-            circuit->parseDiode($1, $2, $3, $4, $5);
+            netlist->parseDiode($1, $2, $3, $4, $5);
         }
         | DIODE node node diode_model
         {
             printf("[Component] Device(Diode) Name(%s) N+(%s) N-(%s) Model(%s)\n", $1, $2, $3, $4);
-            circuit->parseDiode($1, $2, $3, $4, 0);
+            netlist->parseDiode($1, $2, $3, $4, 0);
         }
 ;
 
@@ -495,12 +495,12 @@ op: OP
 dc: DC VOLTAGE_SOURCE value_voltage value_voltage value_voltage
     {
         printf("[Analysis] Command(DC) Source(%s) Start(%f) End(%f) Step(%f)\n", $2, $3, $4, $5);
-        circuit->DCSimulation(COMPONENT_VOLTAGE_SOURCE, $2, $3, $4, $5);
+        netlist->parseDC(COMPONENT_VOLTAGE_SOURCE, $2, $3, $4, $5);
     }
     | DC CURRENT_SOURCE value_current value_current value_current
     {
         printf("[Analysis] Command(DC) Source(%s) Start(%f) End(%f) Step(%f)\n", $2, $3, $4, $5);
-        circuit->DCSimulation(COMPONENT_CURRENT_SOURCE, $2, $3, $4, $5);
+        netlist->parseDC(COMPONENT_CURRENT_SOURCE, $2, $3, $4, $5);
     }
 ;
 
@@ -509,15 +509,15 @@ ac: AC ac_type value value_frequency value_frequency
         switch($2) {
             case TOKEN_DEC:
                 printf("[Analysis] Command(AC) Type(DEC) PointsPerDec(%f) FreqStart(%e) FreqEnd(%e)\n", $3, $4, $5);
-                circuit->ACSimulation(TOKEN_DEC, $3, $4, $5);
+                netlist->parseAC(TOKEN_DEC, $3, $4, $5);
                 break;
             case TOKEN_OCT:
                 printf("[Analysis] Command(AC) Type(OCT) PointsPerOct(%f) FreqStart(%e) FreqEnd(%e)\n", $3, $4, $5);
-                circuit->ACSimulation(TOKEN_OCT, $3, $4, $5);
+                netlist->parseAC(TOKEN_OCT, $3, $4, $5);
                 break;
             case TOKEN_LIN:
                 printf("[Analysis] Command(AC) Type(LIN) Points(%f) FreqStart(%e) FreqEnd(%e)\n", $3, $4, $5);
-                circuit->ACSimulation(TOKEN_LIN, $3, $4, $5);
+                netlist->parseAC(TOKEN_LIN, $3, $4, $5);
                 break;
             default:
                 printf("!No such AC type\n");
@@ -528,13 +528,13 @@ ac: AC ac_type value value_frequency value_frequency
 tran: TRAN value_time value_time
     {
         printf("[Analysis] Command(TRAN) TimeStep(%e) StopTime(%e)\n", $2, $3);
-        circuit->TranSimulation($2, $3, 0);
+        netlist->parseTran($2, $3, 0);
     }
     |
     TRAN value_time value_time value_time
     {
         printf("[Analysis] Command(TRAN) TimeStep(%e) StopTime(%e) StartTime(%e)\n", $2, $3, $4);
-        circuit->TranSimulation($2, $3, $4);
+        netlist->parseTran($2, $3, $4);
     }
 ;
 
@@ -598,7 +598,7 @@ print: PRINT analysis_type variable_list
             printf("\b\b), ");  // \b is not recommended
         }
         printf("\b\b)\n");
-        circuit->printAnalysis($2, *$3);
+        netlist->parsePrint($2, *$3);
     }
 ;
 
@@ -662,7 +662,7 @@ plot: PLOT analysis_type variable_list
             printf("\b\b), ");  // \b is not recommended
         }
         printf("\b\b)\n");
-        circuit->plotAnalysis($2, *$3);
+        netlist->parsePlot($2, *$3);
     }
 ;
 
@@ -849,16 +849,18 @@ namespace yy
 {
 	void Parser::error(const location_type& loc, const std::string &s)
 	{
-        std::cerr << "Error: line " << loc.begin.line << ", column " << loc.begin.column << ", " << s << std::endl;
-        std::cerr << loc << std::endl;
+        std::cerr << "-------------------" << "Parse failed" << "-------------------" << std::endl;
+        std::cerr << "Error: Parsing failed in line " << loc.begin.line << ", column " << loc.begin.column << ", " << s << std::endl;
 
-        std::cerr << "Error: Parsing failed in line " << loc.begin.line << ", ";
         if (first_token_of_current_line != NULL) {
-            std::cerr << "first token of the line: " << first_token_of_current_line << std::endl;
+            std::cerr << "First token of the line: " << first_token_of_current_line << std::endl;
         }
         else {
-            std::cerr << "no token found in the line." << std::endl;  // should not happen
+            std::cerr << "No token found in the line." << std::endl;  // should not happen
         }
-        delete circuit;
+
+        std::cerr << loc << std::endl;
+        std::cerr << "-------------------" << "Parse failed" << "-------------------" << std::endl;
+        delete netlist;
     }
 }

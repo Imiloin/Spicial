@@ -1,49 +1,27 @@
-#ifndef SPICIAL_CIRCUIT_H
-#define SPICIAL_CIRCUIT_H
+#ifndef SPICIAL_NETLIST_H
+#define SPICIAL_NETLIST_H
 
-#include <algorithm>
-#include <armadillo>
+/** 仅保存解析得到的网表，不进行任何仿真 */
+
 #include <complex>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <stdexcept>  // for std::invalid_argument
+#include <list>
+// #include <stdexcept>  // for std::invalid_argument
 #include <string>
 #include <unordered_set>
 #include <vector>
 #include "Component.h"
 #include "Model.h"
-#include "call_plot.h"
 #include "linetype.h"
 #include "structs.h"
 #include "tokentype.h"
 
-class Circuit {
+class Netlist {
    public:
-    Circuit(const std::string& file);
-    ~Circuit();
-
-    bool hasNode(const std::string& node_name);
-
-    void addNode(const std::string& node_name);
-
-    int getNodeIndex(const std::string& name);
-    int getNodeIndexExgnd(const std::string& name);
-
-    int getNodeNum() const;
-    int getNodeNumExgnd() const;
-
-    void printNodes() const;
-
-    bool hasBranch(const std::string& branch_name);
-
-    void addBranch(const std::string& branch_name);
-
-    int getBranchIndex(const std::string& name);
-
-    int getBranchNum() const;
-
-    void printBranches() const;
+    Netlist(const std::string& file);
+    ~Netlist();
 
     bool hasModel(const std::string& model_name);
 
@@ -55,14 +33,9 @@ class Circuit {
 
     void addComponent(Component* component);
 
+    void replaceComponent(const std::string& name, Component* newComponent);
+
     Component* getComponentPtr(const std::string& name);
-
-    void printSize() const;
-
-    double calcFunctionAtTime(const Function* func,
-                              double time,
-                              double tstep,
-                              double tstop);
 
     void parseResistor(const std::string& name,
                        const std::string& nplus,
@@ -74,14 +47,12 @@ class Circuit {
                         const std::string& nminus,
                         double capacitance,
                         double initial_voltage = 0);
-    void addCapacitor(Capacitor* capacitor);
 
     void parseInductor(const std::string& name,
                        const std::string& nplus,
                        const std::string& nminus,
                        double inductance,
                        double initial_current = 0);
-    void addInductor(Inductor* inductor);
 
     void parseVCVS(const std::string& name,
                    const std::string& nplus,
@@ -121,8 +92,6 @@ class Circuit {
                             const std::string& nplus,
                             const std::string& nminus,
                             const Function& func);
-    void addVoltageSource(VoltageSource* voltage_source);
-
     // no function
     void parseCurrentSource(const std::string& name,
                             const std::string& nplus,
@@ -135,7 +104,6 @@ class Circuit {
                             const std::string& nplus,
                             const std::string& nminus,
                             const Function& func);
-    void addCurrentSource(CurrentSource* current_source);
 
     void parseDiode(const std::string& name,
                     const std::string& nplus,
@@ -143,44 +111,38 @@ class Circuit {
                     const std::string& model,
                     double initial_voltage = 0);
 
-    void generateDCMNA();
-    void generateACMNA();
-    void generateTranMNA();
-    void printMNADCTemplate() const;
-    void printMNAACTemplate() const;
-    void printMNATranTemplate() const;
+    void printComponentSize() const;
 
-    void DCSimulation(int source_type,
-                      const std::string& source,
-                      double start,
-                      double end,
-                      double increment);
-    void ACSimulation(int analysis_type,
-                      double n,
-                      double freq_start,
-                      double freq_end);
-    arma::vec tranBackEuler(double time,
-                            double h,
-                            double tstep,
-                            double tstop,
-                            const arma::vec x_prev);
-    void TranSimulation(double step, double stop_time, double start_time = 0);
+    void parseDC(int source_type,
+                 const std::string& source,
+                 double start,
+                 double end,
+                 double increment);
 
-    void printAnalysis(int analysis_type,
-                       const std::vector<Variable>& var_list);
-    void plotAnalysis(int analysis_type, const std::vector<Variable>& var_list);
-    // 其他方法...
-    void printResults() const;
+    void parseAC(int analysis_type,
+                 double n,
+                 double freq_start,
+                 double freq_end);
+
+    void parseTran(double step, double stop_time, double start_time = 0);
+
+    void parsePrint(int analysis_type, const std::vector<Variable>& var_list);
+
+    void parsePlot(int analysis_type, const std::vector<Variable>& var_list);
 
    private:
     std::string file_path;
 
-    // nodes 和 branches 要分开，避免重名问题
-    std::vector<std::string> nodes;
-    std::vector<std::string> nodes_exgnd;  // exclude gnd
-    std::vector<std::string> branches;     // use component name as branch name
-    std::vector<Component*> components;
-    std::vector<Model*> models;
+    // 是否需要？如果后方重名覆盖前方的定义怎么办？
+    // std::vector<std::string> nodes;
+    // std::vector<std::string> nodes_exgnd;  // exclude gnd
+    // std::vector<std::string> branches;     // use component name as branch
+    // name
+
+    std::list<Component*> components;  // 元件，包括 R, C, L, VCVS, CCCS, VCCS, CCVS, VS, IS, D, M
+    std::vector<Model*> models;        // 模型
+    std::list<Analysis*> analyses;     // 分析，包括 OP, AC, DC, TRAN
+    std::list<Output*> outputs;        // 输出，包括 PRINT, PLOT
 
     // set only contains names
     std::unordered_set<std::string> resistor_name_set = {};
@@ -198,25 +160,6 @@ class Circuit {
     std::vector<Inductor*> inductors;
     std::vector<VoltageSource*> voltage_sources;
     std::vector<CurrentSource*> current_sources;
-
-    // MNA and RHS pointers, a template without analysis
-    arma::sp_mat* MNA_DC_T;
-    arma::vec* RHS_DC_T;
-    arma::sp_cx_mat* MNA_AC_T;
-    arma::cx_vec* RHS_AC_T;
-    arma::sp_mat* MNA_TRAN_T;
-    arma::vec* RHS_TRAN_T;
-
-    // save the results of simulation
-    int simulation_type;
-    std::string iter_name;
-    std::vector<double> iter_values;
-    std::vector<arma::vec> iter_results;      // exclude gnd!!!
-    std::vector<arma::cx_vec> iter_cresults;  // for AC simulation
-
-    // save results of print or plot
-    ColumnData xdata;
-    std::vector<ColumnData> ydata;
 };
 
-#endif  // SPICIAL_CIRCUIT_H
+#endif  // SPICIAL_NETLIST_H

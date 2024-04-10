@@ -3,8 +3,8 @@
 
 extern FILE* yyin;
 
-Circuit *callNetlistParser(const char* fileName) {
-    qDebug() << "callNetlistParser()" << fileName;
+Netlist *callNetlistParser(const char* fileName) {
+    std::cout << "Start parsing " << fileName << std::endl << std::endl;
 
     // Check if fileName is a directory
     struct stat s;
@@ -24,12 +24,12 @@ Circuit *callNetlistParser(const char* fileName) {
     // read title and move the pointer to second line
     char title[128];
     fgets(title, 128, yyin);
-    printf("Title: %s", title);
+    printf("[Title] %s", title);
 
-    // create circuit instance
-    Circuit *circuit = new Circuit(fileName);
+    // create netlist instance
+    Netlist *netlist = new Netlist(fileName);
 
-    yy::Parser parser(circuit);
+    yy::Parser parser(netlist);
     int ret = parser.parse();
     if (ret != 0) {
         printf("Parse %s failed.\n", fileName);
@@ -41,5 +41,5 @@ Circuit *callNetlistParser(const char* fileName) {
 
     fclose(yyin);
 
-    return circuit;
+    return netlist;
 }

@@ -344,6 +344,8 @@ END              [\.][Ee][Nn][Dd]
                 BEGIN(ANALYSIS_TYPE); optional_token = true; break;
             case COMPONENT_CURRENT_SOURCE:
                 BEGIN(VALUES); current_token_needed = 1; break;
+            case COMPONENT_DIODE:
+                BEGIN(MODELNAMES); current_token_needed = 1; break;
             case ANALYSIS_PRINT:
             case ANALYSIS_PLOT:
                 BEGIN(VARIABLES); current_token_needed = 1; break;

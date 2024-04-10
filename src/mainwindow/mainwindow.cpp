@@ -232,8 +232,8 @@ void MainWindow::slotSimulate() {
                  "-----------"
               << std::endl;
 
-    Circuit* circuit = callNetlistParser(fileName.toStdString().c_str());
-    if (circuit == nullptr) {
+    Netlist* netlist = callNetlistParser(fileName.toStdString().c_str());
+    if (netlist == nullptr) {
         qDebug() << "Call parser but return nullptr\n";
         return;
     }
@@ -242,7 +242,7 @@ void MainWindow::slotSimulate() {
                  "-----------"
               << std::endl;
 
-    delete circuit;
+    delete netlist;
 }
 
 void MainWindow::slotDebug() {
@@ -252,12 +252,13 @@ void MainWindow::slotDebug() {
                  "*********"
               << std::endl;
 
-    Circuit* circuit = callNetlistParser(fileName.toStdString().c_str());
-    if (circuit == nullptr) {
+    Netlist* netlist = callNetlistParser(fileName.toStdString().c_str());
+    if (netlist == nullptr) {
         qDebug() << "Call parser but return nullptr\n";
         return;
     }
 
+    /*
     circuit->printSize();
 
     circuit->printNodes();
@@ -279,10 +280,11 @@ void MainWindow::slotDebug() {
     circuit->printMNATranTemplate();
 
     circuit->printResults();
+    */
 
     std::cout << "********************************DEBUG************************"
                  "*********"
               << std::endl;
 
-    delete circuit;
+    delete netlist;
 }
