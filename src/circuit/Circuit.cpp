@@ -1,7 +1,9 @@
 #include "Circuit.h"
 #include <QDebug>
 
-Circuit::Circuit(Netlist& netlist_) : netlist(netlist_) {
+Circuit::Circuit(Netlist& netlist_)
+    : netlist(netlist_), models(netlist_.models) {
+    this->preProcess();
 
     simulation_type = -1;
 
@@ -22,12 +24,14 @@ Circuit::~Circuit() {
     delete RHS_TRAN_T;
 }
 
-void Circuit::generateNodesBranches() {
+void Circuit::preProcess() {
     // add ground node, name is "0"
     std::string gnd = "0";
     nodes.push_back(gnd);
 
     // add nodes and branches
+    // and create node, branch index for components
+    // and get model ptr for components
     for (Component* component : netlist.components) {
         switch (component->getType()) {
             case (COMPONENT_RESISTOR): {
@@ -97,8 +101,10 @@ void Circuit::generateNodesBranches() {
             }
             case (COMPONENT_DIODE): {
                 Diode* diode = dynamic_cast<Diode*>(component);
-                // diode->id_nplus = addNode(diode->nplus);
-                // diode->id_nminus = addNode(diode->nminus);
+                diode->id_nplus = addNode(diode->nplus);
+                diode->id_nminus = addNode(diode->nminus);
+                diode->model =
+                    dynamic_cast<DiodeModel*>(getModelPtr(diode->modelname));
                 break;
             }
         }
@@ -247,6 +253,19 @@ void Circuit::printBranches() const {
     std::cout << "-------------------------------" << std::endl;
 }
 
+Model* Circuit::getModelPtr(const std::string& name) {
+    // std::vector<Model*>& models;
+    auto it = std::find_if(models.begin(), models.end(), [&name](Model* model) {
+        return model->getName() == name;
+    });
+    if (it == models.end()) {
+        qDebug() << "getModelPtr(" << name.c_str() << ")";
+        printf("Model not found\n");
+        return nullptr;
+    }
+    return *it;
+}
+
 double Circuit::calcFunctionAtTime(const Function* func,
                                    double time,
                                    double tstep,
@@ -308,6 +327,13 @@ double Circuit::calcFunctionAtTime(const Function* func,
     }
 }
 
+void Circuit::runSimulations() {
+    for (Analysis* analysis : netlist.analyses) {
+        // to do
+    }
+}
+
+// to be removed
 void Circuit::generateDCMNA() {
     // 生成 DC 状态 MNA 模板
     int node_num = getNodeNum();
@@ -337,7 +363,6 @@ void Circuit::generateDCMNA() {
                 break;
             }
             case COMPONENT_CAPACITOR: {
-                // do nothing
                 int id_nplus = getNodeIndex(
                     dynamic_cast<Capacitor*>(component)->getNplus());
                 int id_nminus = getNodeIndex(
@@ -525,7 +550,7 @@ void Circuit::generateTranMNA() {
     // (*MNA_TRAN_T).print("MNA_TRAN_T, before resize");
 
     // 生成 Tran 状态 MNA 模板
-    // 为 Capacitor 添加额外的 branch
+    // 为 Capacitor 的 branch 进行调整
     for (Capacitor* capacitor : netlist.capacitors) {
         int id_nplus = getNodeIndex(capacitor->getNplus());
         int id_nminus = getNodeIndex(capacitor->getNminus());
@@ -753,11 +778,14 @@ void Circuit::ACSimulation(int ac_type,
             int id_nplus = getNodeIndex(capacitor->getNplus());
             int id_nminus = getNodeIndex(capacitor->getNminus());
             double capacitance = capacitor->getCapacitance();
+            int id_branch = getBranchIndex(capacitor->getName()) + node_num;
 
             MNA_AC(id_nplus, id_nplus) += 2 * M_PI * freq * capacitance * j;
             MNA_AC(id_nminus, id_nminus) += 2 * M_PI * freq * capacitance * j;
             MNA_AC(id_nplus, id_nminus) -= 2 * M_PI * freq * capacitance * j;
             MNA_AC(id_nminus, id_nplus) -= 2 * M_PI * freq * capacitance * j;
+            MNA_AC(id_branch, id_nplus) = 2 * M_PI * freq * capacitance * j;
+            MNA_AC(id_branch, id_nminus) = -2 * M_PI * freq * capacitance * j;
         }
         for (Inductor* inductor : netlist.inductors) {
             double inductance = inductor->getInductance();

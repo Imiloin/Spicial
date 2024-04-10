@@ -260,8 +260,6 @@ void MainWindow::slotDebug() {
 
     Circuit circuit(*netlist);
 
-    circuit.generateNodesBranches();
-
     circuit.printNodes();
 
     circuit.printBranches();

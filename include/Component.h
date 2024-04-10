@@ -4,6 +4,7 @@
 #include <string>
 #include "linetype.h"
 #include "structs.h"
+#include "Model.h"
 
 class Component {
    protected:
@@ -12,6 +13,7 @@ class Component {
 
    public:
     friend class Circuit;
+    friend class Simulation;
     Component(const std::string& name);
     virtual ~Component();
     int getType() const;
@@ -29,6 +31,7 @@ class Resistor : public Component {
 
    public:
     friend class Circuit;
+    friend class Simulation;
     Resistor(const std::string& name,
              const std::string& nplus,
              const std::string& nminus,
@@ -51,6 +54,7 @@ class Capacitor : public Component {
 
    public:
     friend class Circuit;
+    friend class Simulation;
     Capacitor(const std::string& name,
               const std::string& nplus,
               const std::string& nminus,
@@ -75,6 +79,7 @@ class Inductor : public Component {
 
    public:
     friend class Circuit;
+    friend class Simulation;
     Inductor(const std::string& name,
              const std::string& nplus,
              const std::string& nminus,
@@ -102,6 +107,7 @@ class VCVS : public Component {
 
    public:
     friend class Circuit;
+    friend class Simulation;
     VCVS(const std::string& name,
          const std::string& nplus,
          const std::string& nminus,
@@ -127,6 +133,7 @@ class CCCS : public Component {
 
    public:
     friend class Circuit;
+    friend class Simulation;
     CCCS(const std::string& name,
          const std::string& nplus,
          const std::string& nminus,
@@ -153,6 +160,7 @@ class VCCS : public Component {
 
    public:
     friend class Circuit;
+    friend class Simulation;
     VCCS(const std::string& name,
          const std::string& nplus,
          const std::string& nminus,
@@ -179,6 +187,7 @@ class CCVS : public Component {
 
    public:
     friend class Circuit;
+    friend class Simulation;
     CCVS(const std::string& name,
          const std::string& nplus,
          const std::string& nminus,
@@ -205,6 +214,7 @@ class VoltageSource : public Component {
 
    public:
     friend class Circuit;
+    friend class Simulation;
     VoltageSource(const std::string& name,
                   const std::string& nplus,
                   const std::string& nminus,
@@ -234,6 +244,7 @@ class CurrentSource : public Component {
 
    public:
     friend class Circuit;
+    friend class Simulation;
     CurrentSource(const std::string& name,
                   const std::string& nplus,
                   const std::string& nminus,
@@ -254,19 +265,23 @@ class Diode : public Component {
    private:
     std::string nplus;
     std::string nminus;
-    std::string model;
+    std::string modelname;
     double initial_voltage;
+    int id_nplus;
+    int id_nminus;
+    DiodeModel* model;
 
    public:
     friend class Circuit;
+    friend class Simulation;
     Diode(const std::string& name,
           const std::string& nplus,
           const std::string& nminus,
-          const std::string& model,
+          const std::string& modelname,
           double initial_voltage);
     std::string getNplus() const;
     std::string getNminus() const;
-    std::string getModel() const;
+    std::string getModelname() const;
     double getInitialVoltage() const;
 };
 

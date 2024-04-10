@@ -23,6 +23,7 @@ struct Analysis {
     int analysis_type;  // OP, AC, DC, TRAN
     int source_type;  // for DC
     std::string source_name;  // for DC
+    double step;  // for TRAN
     std::string iter_name;
     std::vector<double> iter_values;
 };

@@ -25,9 +25,9 @@ Netlist::~Netlist() {
     }
 }
 
-bool Netlist::hasModel(const std::string& model_name) {
+bool Netlist::hasModel(const std::string& modelname) {
     for (Model* model : models) {
-        if (model->getName() == model_name) {
+        if (model->getName() == modelname) {
             return true;
         }
     }
@@ -314,15 +314,15 @@ void Netlist::parseCurrentSource(const std::string& name,
 void Netlist::parseDiode(const std::string& name,
                          const std::string& nplus,
                          const std::string& nminus,
-                         const std::string& model,
+                         const std::string& modelname,
                          double initial_voltage) {
-    if (!hasModel(model)) {
+    if (!hasModel(modelname)) {
         qDebug() << "parseDiode(" << name.c_str() << ")";
-        std::cerr << "Parse warning: Diode " << model << " model not found.\n";
+        std::cerr << "Parse warning: Diode " << modelname << " model not found.\n";
         return;
     }
 
-    Diode* diode = new Diode(name, nplus, nminus, model, initial_voltage);
+    Diode* diode = new Diode(name, nplus, nminus, modelname, initial_voltage);
     if (!diode_name_set.insert(name).second) {  // if already exists in the set
         qDebug() << "parseDiode(" << name.c_str() << ")";
         std::cerr << "Parse warning: Diode " << name
@@ -421,25 +421,9 @@ void Netlist::parseTran(double step, double stop_time, double start_time) {
 
     analysis->analysis_type = ANALYSIS_TRAN;
     analysis->iter_name = "time";
+    analysis->step = step;
 
-    // 最好修改为动态步长
-    double time = 0;  // 当前时间点
-    double h = step;  // 为简化处理，使用恒定步长
-
-    if (start_time == 0) {
-        analysis->iter_values.push_back(time);  // 保存仿真时间点
-    }
-
-    for (time = h; time < start_time; time += h) {
-    }
-    time -= h;  // 回退到 start_time 前一个时间点
-    // 求解 [time, start_time] 的解 //
-    if (time < start_time) {
-        time = start_time;
-    }
-    // 求解 (start_time, stop_time] 的解 //
-    std::cout << (time < stop_time) << std::endl;
-    for (time += h; time <= stop_time; time += step) {
+    for (double time = start_time; time <= stop_time; time += step) {
         analysis->iter_values.push_back(time);  // 保存仿真时间点
     }
 }

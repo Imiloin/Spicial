@@ -22,8 +22,11 @@ class Circuit {
     Circuit(Netlist& netlist_);
     ~Circuit();
 
-    void generateNodesBranches();  // 生成 nodes 和 branches，同时为 components
-                                   // 分配 nodes 和 branches 的索引
+    friend class Simulation;
+
+    void preProcess();  // 生成 nodes 和 branches，同时为 components
+                        // 分配 nodes, branches 的索引
+                        // 分配 model 的指针
 
     int addNode(const std::string& newNode);
 
@@ -43,10 +46,14 @@ class Circuit {
 
     void printBranches() const;
 
+    Model* getModelPtr(const std::string& name);
+
     double calcFunctionAtTime(const Function* func,
                               double time,
                               double tstep,
                               double tstop);
+
+    void runSimulations();
 
     void generateDCMNA();
     void generateACMNA();
@@ -84,8 +91,9 @@ class Circuit {
     std::vector<std::string> nodes;
     std::vector<std::string> nodes_exgnd;  // exclude gnd
     std::vector<std::string> branches;     // use component name as branch name
-    // std::vector<Component*> components;
-    // std::vector<Model*> models;
+
+    // 从 netlist 中获取的 models
+    std::vector<Model*>& models;
 
     // MNA and RHS pointers, a template without analysis
     arma::sp_mat* MNA_DC_T;

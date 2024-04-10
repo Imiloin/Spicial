@@ -323,12 +323,12 @@ Function* CurrentSource::getFunction() const {
 Diode::Diode(const std::string& name,
              const std::string& nplus,
              const std::string& nminus,
-             const std::string& model,
+             const std::string& modelname,
              double initial_voltage)
     : Component(name),
       nplus(nplus),
       nminus(nminus),
-      model(model),
+      modelname(modelname),
       initial_voltage(initial_voltage) {
     type = COMPONENT_DIODE;
 }
@@ -341,8 +341,8 @@ std::string Diode::getNminus() const {
     return nminus;
 }
 
-std::string Diode::getModel() const {
-    return model;
+std::string Diode::getModelname() const {
+    return modelname;
 }
 
 double Diode::getInitialVoltage() const {
