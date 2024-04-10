@@ -38,6 +38,7 @@ SOURCES += src/main.cpp \
            src/mainwindow/*.cpp \
            src/netlist/*.cpp \
            src/circuit/*.cpp \
+           src/simulation/*.cpp \
            src/plot/*.cpp
 
 

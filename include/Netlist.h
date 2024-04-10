@@ -8,7 +8,6 @@
 #include <fstream>
 #include <iostream>
 #include <list>
-// #include <stdexcept>  // for std::invalid_argument
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -22,6 +21,9 @@ class Netlist {
    public:
     Netlist(const std::string& file);
     ~Netlist();
+
+    friend class Simulation;
+    friend class Circuit;
 
     bool hasModel(const std::string& model_name);
 
@@ -133,12 +135,6 @@ class Netlist {
    private:
     std::string file_path;
 
-    // 是否需要？如果后方重名覆盖前方的定义怎么办？
-    // std::vector<std::string> nodes;
-    // std::vector<std::string> nodes_exgnd;  // exclude gnd
-    // std::vector<std::string> branches;     // use component name as branch
-    // name
-
     std::list<Component*> components;  // 元件，包括 R, C, L, VCVS, CCCS, VCCS, CCVS, VS, IS, D, M
     std::vector<Model*> models;        // 模型
     std::list<Analysis*> analyses;     // 分析，包括 OP, AC, DC, TRAN
@@ -156,6 +152,7 @@ class Netlist {
     std::unordered_set<std::string> currentsource_name_set = {};
     std::unordered_set<std::string> diode_name_set = {};
 
+    // some special components
     std::vector<Capacitor*> capacitors;
     std::vector<Inductor*> inductors;
     std::vector<VoltageSource*> voltage_sources;

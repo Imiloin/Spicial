@@ -11,6 +11,7 @@ class Component {
     std::string name;
 
    public:
+    friend class Circuit;
     Component(const std::string& name);
     virtual ~Component();
     int getType() const;
@@ -23,8 +24,11 @@ class Resistor : public Component {
     std::string nplus;
     std::string nminus;
     double resistance;
+    int id_nplus;
+    int id_nminus;
 
    public:
+    friend class Circuit;
     Resistor(const std::string& name,
              const std::string& nplus,
              const std::string& nminus,
@@ -41,8 +45,12 @@ class Capacitor : public Component {
     std::string nminus;
     double capacitance;
     double initial_voltage;
+    int id_nplus;
+    int id_nminus;
+    int id_branch;
 
    public:
+    friend class Circuit;
     Capacitor(const std::string& name,
               const std::string& nplus,
               const std::string& nminus,
@@ -61,8 +69,12 @@ class Inductor : public Component {
     std::string nminus;
     double inductance;
     double initial_current;
+    int id_nplus;
+    int id_nminus;
+    int id_branch;
 
    public:
+    friend class Circuit;
     Inductor(const std::string& name,
              const std::string& nplus,
              const std::string& nminus,
@@ -82,8 +94,14 @@ class VCVS : public Component {
     std::string ncplus;
     std::string ncminus;
     double gain;
+    int id_nplus;
+    int id_nminus;
+    int id_ncplus;
+    int id_ncminus;
+    int id_branch;
 
    public:
+    friend class Circuit;
     VCVS(const std::string& name,
          const std::string& nplus,
          const std::string& nminus,
@@ -104,8 +122,11 @@ class CCCS : public Component {
     std::string nminus;
     std::string vsource;
     double gain;
+    int id_nplus;
+    int id_nminus;
 
    public:
+    friend class Circuit;
     CCCS(const std::string& name,
          const std::string& nplus,
          const std::string& nminus,
@@ -125,8 +146,13 @@ class VCCS : public Component {
     std::string ncplus;
     std::string ncminus;
     double gain;
+    int id_nplus;
+    int id_nminus;
+    int id_ncplus;
+    int id_ncminus;
 
    public:
+    friend class Circuit;
     VCCS(const std::string& name,
          const std::string& nplus,
          const std::string& nminus,
@@ -147,8 +173,12 @@ class CCVS : public Component {
     std::string nminus;
     std::string vsource;
     double gain;
+    int id_nplus;
+    int id_nminus;
+    int id_branch;
 
    public:
+    friend class Circuit;
     CCVS(const std::string& name,
          const std::string& nplus,
          const std::string& nminus,
@@ -169,8 +199,12 @@ class VoltageSource : public Component {
     double ac_magnitude;
     double ac_phase;
     Function* function;
+    int id_nplus;
+    int id_nminus;
+    int id_branch;
 
    public:
+    friend class Circuit;
     VoltageSource(const std::string& name,
                   const std::string& nplus,
                   const std::string& nminus,
@@ -195,8 +229,11 @@ class CurrentSource : public Component {
     double ac_magnitude;
     double ac_phase;
     Function* function;
+    int id_nplus;
+    int id_nminus;
 
    public:
+    friend class Circuit;
     CurrentSource(const std::string& name,
                   const std::string& nplus,
                   const std::string& nminus,
@@ -221,6 +258,7 @@ class Diode : public Component {
     double initial_voltage;
 
    public:
+    friend class Circuit;
     Diode(const std::string& name,
           const std::string& nplus,
           const std::string& nminus,

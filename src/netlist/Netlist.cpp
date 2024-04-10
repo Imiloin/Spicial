@@ -318,7 +318,7 @@ void Netlist::parseDiode(const std::string& name,
                          double initial_voltage) {
     if (!hasModel(model)) {
         qDebug() << "parseDiode(" << name.c_str() << ")";
-        std::cerr << "Parse warning: Diode " << name << " model not found.\n";
+        std::cerr << "Parse warning: Diode " << model << " model not found.\n";
         return;
     }
 
@@ -348,15 +348,14 @@ void Netlist::parseDC(int source_type,
         analysis->iter_values.push_back(iter);
     }
 
-    qDebug() << "parseDC() source_type: " << source_type;
     switch (source_type) {
         case (COMPONENT_VOLTAGE_SOURCE): {
-            qDebug() << "parseDC() source: " << source.c_str();
+            // qDebug() << "parseDC() source: " << source.c_str();
             analysis->iter_name = "voltage(" + source + ")";
             break;
         }
         case (COMPONENT_CURRENT_SOURCE): {
-            qDebug() << "parseDC() source: " << source.c_str();
+            // qDebug() << "parseDC() source: " << source.c_str();
             analysis->iter_name = "current(" + source + ")";
             break;
         }
@@ -376,7 +375,7 @@ void Netlist::parseAC(int ac_type,
     analysis->analysis_type = ANALYSIS_AC;
     analysis->iter_name = "frequency";
 
-    qDebug() << "parseAC() ac_type: " << ac_type;
+    // qDebug() << "parseAC() ac_type: " << ac_type;
 
     // 获取仿真的频率点
     switch (ac_type) {

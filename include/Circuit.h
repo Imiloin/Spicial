@@ -11,8 +11,7 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
-#include "Component.h"
-#include "Model.h"
+#include "Netlist.h"
 #include "call_plot.h"
 #include "linetype.h"
 #include "structs.h"
@@ -20,12 +19,13 @@
 
 class Circuit {
    public:
-    Circuit(const std::string& file);
+    Circuit(Netlist& netlist_);
     ~Circuit();
 
-    bool hasNode(const std::string& node_name);
+    void generateNodesBranches();  // 生成 nodes 和 branches，同时为 components
+                                   // 分配 nodes 和 branches 的索引
 
-    void addNode(const std::string& node_name);
+    int addNode(const std::string& newNode);
 
     int getNodeIndex(const std::string& name);
     int getNodeIndexExgnd(const std::string& name);
@@ -35,9 +35,7 @@ class Circuit {
 
     void printNodes() const;
 
-    bool hasBranch(const std::string& branch_name);
-
-    void addBranch(const std::string& branch_name);
+    int addBranch(const std::string& newBranch);
 
     int getBranchIndex(const std::string& name);
 
@@ -45,103 +43,10 @@ class Circuit {
 
     void printBranches() const;
 
-    bool hasModel(const std::string& model_name);
-
-    void addModel(Model* model);
-
-    Model* getModelPtr(const std::string& name);
-
-    void printModels() const;
-
-    void addComponent(Component* component);
-
-    Component* getComponentPtr(const std::string& name);
-
-    void printSize() const;
-
     double calcFunctionAtTime(const Function* func,
                               double time,
                               double tstep,
                               double tstop);
-
-    void parseResistor(const std::string& name,
-                       const std::string& nplus,
-                       const std::string& nminus,
-                       double resistance);
-
-    void parseCapacitor(const std::string& name,
-                        const std::string& nplus,
-                        const std::string& nminus,
-                        double capacitance,
-                        double initial_voltage = 0);
-    void addCapacitor(Capacitor* capacitor);
-
-    void parseInductor(const std::string& name,
-                       const std::string& nplus,
-                       const std::string& nminus,
-                       double inductance,
-                       double initial_current = 0);
-    void addInductor(Inductor* inductor);
-
-    void parseVCVS(const std::string& name,
-                   const std::string& nplus,
-                   const std::string& nminus,
-                   const std::string& ncplus,
-                   const std::string& ncminus,
-                   double gain);
-
-    void parseCCCS(const std::string& name,
-                   const std::string& nplus,
-                   const std::string& nminus,
-                   const std::string& vsource,
-                   double gain);
-
-    void parseVCCS(const std::string& name,
-                   const std::string& nplus,
-                   const std::string& nminus,
-                   const std::string& ncplus,
-                   const std::string& ncminus,
-                   double gain);
-
-    void parseCCVS(const std::string& name,
-                   const std::string& nplus,
-                   const std::string& nminus,
-                   const std::string& vsource,
-                   double gain);
-
-    // no function
-    void parseVoltageSource(const std::string& name,
-                            const std::string& nplus,
-                            const std::string& nminus,
-                            double dc_voltage,
-                            double ac_magnitude = 0,
-                            double ac_phase = 0);
-    // with function
-    void parseVoltageSource(const std::string& name,
-                            const std::string& nplus,
-                            const std::string& nminus,
-                            const Function& func);
-    void addVoltageSource(VoltageSource* voltage_source);
-
-    // no function
-    void parseCurrentSource(const std::string& name,
-                            const std::string& nplus,
-                            const std::string& nminus,
-                            double dc_current,
-                            double ac_magnitude = 0,
-                            double ac_phase = 0);
-    // with function
-    void parseCurrentSource(const std::string& name,
-                            const std::string& nplus,
-                            const std::string& nminus,
-                            const Function& func);
-    void addCurrentSource(CurrentSource* current_source);
-
-    void parseDiode(const std::string& name,
-                    const std::string& nplus,
-                    const std::string& nminus,
-                    const std::string& model,
-                    double initial_voltage = 0);
 
     void generateDCMNA();
     void generateACMNA();
@@ -173,31 +78,14 @@ class Circuit {
     void printResults() const;
 
    private:
-    std::string file_path;
+    Netlist& netlist;
 
-    // nodes 和 branches 要分开，避免重名问题
+    // nodes 和 branches 不会混淆，nodes 名为小写字母，branches 名为大写字母
     std::vector<std::string> nodes;
     std::vector<std::string> nodes_exgnd;  // exclude gnd
     std::vector<std::string> branches;     // use component name as branch name
-    std::vector<Component*> components;
-    std::vector<Model*> models;
-
-    // set only contains names
-    std::unordered_set<std::string> resistor_name_set = {};
-    std::unordered_set<std::string> capacitor_name_set = {};
-    std::unordered_set<std::string> inductor_name_set = {};
-    std::unordered_set<std::string> vcvs_name_set = {};
-    std::unordered_set<std::string> cccs_name_set = {};
-    std::unordered_set<std::string> vccs_name_set = {};
-    std::unordered_set<std::string> ccvs_name_set = {};
-    std::unordered_set<std::string> voltagesource_name_set = {};
-    std::unordered_set<std::string> currentsource_name_set = {};
-    std::unordered_set<std::string> diode_name_set = {};
-
-    std::vector<Capacitor*> capacitors;
-    std::vector<Inductor*> inductors;
-    std::vector<VoltageSource*> voltage_sources;
-    std::vector<CurrentSource*> current_sources;
+    // std::vector<Component*> components;
+    // std::vector<Model*> models;
 
     // MNA and RHS pointers, a template without analysis
     arma::sp_mat* MNA_DC_T;

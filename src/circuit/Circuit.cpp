@@ -1,12 +1,7 @@
 #include "Circuit.h"
 #include <QDebug>
 
-Circuit::Circuit(const std::string& file) {
-    this->file_path = file;
-
-    // add ground node, name is "0"
-    std::string gnd = "0";
-    nodes.push_back(gnd);
+Circuit::Circuit(Netlist& netlist_) : netlist(netlist_) {
 
     simulation_type = -1;
 
@@ -16,18 +11,9 @@ Circuit::Circuit(const std::string& file) {
     RHS_AC_T = nullptr;
     MNA_TRAN_T = nullptr;
     RHS_TRAN_T = nullptr;
-
-    /////// test only ////////
-    Model* diode1 = new DiodeModel("diode1");
-    models.push_back(diode1);
-    /////// delete after test ////////
 }
 
 Circuit::~Circuit() {
-    for (Component* component : components) {
-        delete component;
-    }
-
     delete MNA_DC_T;
     delete RHS_DC_T;
     delete MNA_AC_T;
@@ -36,13 +22,148 @@ Circuit::~Circuit() {
     delete RHS_TRAN_T;
 }
 
-bool Circuit::hasNode(const std::string& node_name) {  // 判断是否有节点
-    return std::find(nodes.begin(), nodes.end(), node_name) != nodes.end();
+void Circuit::generateNodesBranches() {
+    // add ground node, name is "0"
+    std::string gnd = "0";
+    nodes.push_back(gnd);
+
+    // add nodes and branches
+    for (Component* component : netlist.components) {
+        switch (component->getType()) {
+            case (COMPONENT_RESISTOR): {
+                Resistor* resistor = dynamic_cast<Resistor*>(component);
+                resistor->id_nplus = addNode(resistor->nplus);
+                resistor->id_nminus = addNode(resistor->nminus);
+                break;
+            }
+            case (COMPONENT_CAPACITOR): {
+                Capacitor* capacitor = dynamic_cast<Capacitor*>(component);
+                capacitor->id_nplus = addNode(capacitor->nplus);
+                capacitor->id_nminus = addNode(capacitor->nminus);
+                capacitor->id_branch = addBranch(capacitor->name);
+                break;
+            }
+            case (COMPONENT_INDUCTOR): {
+                Inductor* inductor = dynamic_cast<Inductor*>(component);
+                inductor->id_nplus = addNode(inductor->nplus);
+                inductor->id_nminus = addNode(inductor->nminus);
+                inductor->id_branch = addBranch(inductor->name);
+                break;
+            }
+            case (COMPONENT_VCVS): {
+                VCVS* vcvs = dynamic_cast<VCVS*>(component);
+                vcvs->id_nplus = addNode(vcvs->nplus);
+                vcvs->id_nminus = addNode(vcvs->nminus);
+                vcvs->id_ncplus = addNode(vcvs->ncplus);
+                vcvs->id_ncminus = addNode(vcvs->ncminus);
+                vcvs->id_branch = addBranch(vcvs->name);
+                break;
+            }
+            case (COMPONENT_CCCS): {
+                CCCS* cccs = dynamic_cast<CCCS*>(component);
+                cccs->id_nplus = addNode(cccs->nplus);
+                cccs->id_nminus = addNode(cccs->nminus);
+                break;
+            }
+            case (COMPONENT_VCCS): {
+                VCCS* vccs = dynamic_cast<VCCS*>(component);
+                vccs->id_nplus = addNode(vccs->nplus);
+                vccs->id_nminus = addNode(vccs->nminus);
+                vccs->id_ncplus = addNode(vccs->ncplus);
+                vccs->id_ncminus = addNode(vccs->ncminus);
+                break;
+            }
+            case (COMPONENT_CCVS): {
+                CCVS* ccvs = dynamic_cast<CCVS*>(component);
+                ccvs->id_nplus = addNode(ccvs->nplus);
+                ccvs->id_nminus = addNode(ccvs->nminus);
+                ccvs->id_branch = addBranch(ccvs->name);
+                break;
+            }
+            case (COMPONENT_VOLTAGE_SOURCE): {
+                VoltageSource* voltage_source =
+                    dynamic_cast<VoltageSource*>(component);
+                voltage_source->id_nplus = addNode(voltage_source->nplus);
+                voltage_source->id_nminus = addNode(voltage_source->nminus);
+                voltage_source->id_branch = addBranch(voltage_source->name);
+                break;
+            }
+            case (COMPONENT_CURRENT_SOURCE): {
+                CurrentSource* current_source =
+                    dynamic_cast<CurrentSource*>(component);
+                current_source->id_nplus = addNode(current_source->nplus);
+                current_source->id_nminus = addNode(current_source->nminus);
+                break;
+            }
+            case (COMPONENT_DIODE): {
+                Diode* diode = dynamic_cast<Diode*>(component);
+                // diode->id_nplus = addNode(diode->nplus);
+                // diode->id_nminus = addNode(diode->nminus);
+                break;
+            }
+        }
+    }
+
+    // 更新 branch 索引，加上节点数
+    int node_num = getNodeNum();
+    for (Component* component : netlist.components) {
+        switch (component->getType()) {
+            case (COMPONENT_RESISTOR): {
+                break;
+            }
+            case (COMPONENT_CAPACITOR): {
+                Capacitor* capacitor = dynamic_cast<Capacitor*>(component);
+                capacitor->id_branch += node_num;
+                break;
+            }
+            case (COMPONENT_INDUCTOR): {
+                Inductor* inductor = dynamic_cast<Inductor*>(component);
+                inductor->id_branch += node_num;
+                break;
+            }
+            case (COMPONENT_VCVS): {
+                VCVS* vcvs = dynamic_cast<VCVS*>(component);
+                vcvs->id_branch += node_num;
+                break;
+            }
+            case (COMPONENT_CCCS): {
+                break;
+            }
+            case (COMPONENT_VCCS): {
+                break;
+            }
+            case (COMPONENT_CCVS): {
+                CCVS* ccvs = dynamic_cast<CCVS*>(component);
+                ccvs->id_branch += node_num;
+                break;
+            }
+            case (COMPONENT_VOLTAGE_SOURCE): {
+                VoltageSource* voltage_source =
+                    dynamic_cast<VoltageSource*>(component);
+                voltage_source->id_branch += node_num;
+                break;
+            }
+            case (COMPONENT_CURRENT_SOURCE): {
+                break;
+            }
+            case (COMPONENT_DIODE): {
+                // Diode* diode = dynamic_cast<Diode*>(component);
+                break;
+            }
+        }
+    }
 }
 
-void Circuit::addNode(const std::string& node_name) {  // 添加节点
-    nodes.push_back(node_name);
-    nodes_exgnd.push_back(node_name);
+int Circuit::addNode(const std::string& newNode) {
+    // 若新节点已经存在，返回节点的索引
+    auto it = std::find(nodes.begin(), nodes.end(), newNode);
+    if (it != nodes.end()) {
+        return std::distance(nodes.begin(), it);
+    }
+    nodes.push_back(newNode);
+    nodes_exgnd.push_back(newNode);
+    // 若新节点被添加，返回节点的索引（最后一个）
+    return nodes.size() - 1;
 }
 
 int Circuit::getNodeIndex(const std::string& name) {  // 获取节点的编号
@@ -70,27 +191,35 @@ int Circuit::getNodeNum() const {
 }
 
 int Circuit::getNodeNumExgnd() const {
-    return nodes.size() - 1;
+    return nodes_exgnd.size();
 }
 
 void Circuit::printNodes() const {
     // print {node: index}
     std::cout << std::endl;
-    std::cout << "------------------- " << std::endl
+    std::cout << "-------------------------------" << std::endl
               << "Nodes: {name: index}" << std::endl;
     for (std::size_t i = 0; i < nodes.size(); i++) {
         std::cout << "{" << nodes[i] << ": " << i << "}" << std::endl;
     }
-    std::cout << "------------------- " << std::endl;
+    std::cout << "-------------------------------" << std::endl;
+    std::cout << "-------------------------------" << std::endl
+              << "Nodes_Exgnd: {name: index}" << std::endl;
+    for (std::size_t i = 0; i < nodes_exgnd.size(); i++) {
+        std::cout << "{" << nodes_exgnd[i] << ": " << i << "}" << std::endl;
+    }
+    std::cout << "-------------------------------" << std::endl;
 }
 
-bool Circuit::hasBranch(const std::string& branch_name) {
-    return std::find(branches.begin(), branches.end(), branch_name) !=
-           branches.end();
-}
-
-void Circuit::addBranch(const std::string& branch_name) {
-    branches.push_back(branch_name);
+int Circuit::addBranch(const std::string& newBranch) {
+    // 若新支路已经存在，返回支路的索引
+    auto it = std::find(branches.begin(), branches.end(), newBranch);
+    if (it != branches.end()) {
+        return std::distance(branches.begin(), it);
+    }
+    branches.push_back(newBranch);
+    // 若新支路被添加，返回支路的索引（最后一个）
+    return branches.size() - 1;
 }
 
 int Circuit::getBranchIndex(const std::string& name) {
@@ -110,74 +239,12 @@ int Circuit::getBranchNum() const {
 void Circuit::printBranches() const {
     // print {branch: index}
     std::cout << std::endl;
-    std::cout << "------------------- " << std::endl
+    std::cout << "-------------------------------" << std::endl
               << "Branches: {name: index}" << std::endl;
     for (std::size_t i = 0; i < branches.size(); i++) {
         std::cout << "{" << branches[i] << ": " << i << "}" << std::endl;
     }
-    std::cout << "------------------- " << std::endl;
-}
-
-bool Circuit::hasModel(const std::string& model_name) {
-    for (Model* model : models) {
-        if (model->getName() == model_name) {
-            return true;
-        }
-    }
-    return false;
-}
-
-void Circuit::addModel(Model* model) {
-    models.push_back(model);
-}
-
-Model* Circuit::getModelPtr(const std::string& name) {
-    for (Model* model : models) {
-        if (model->getName() == name) {
-            return model;
-        }
-    }
-    return nullptr;
-}
-
-void Circuit::printModels() const {
-    // print {model: name}
-    std::cout << std::endl;
-    std::cout << "------------------- " << std::endl
-              << "Models: {name}" << std::endl;
-    for (Model* model : models) {
-        std::cout << "{" << model->getName() << "}" << std::endl;
-    }
-    std::cout << "------------------- " << std::endl;
-}
-
-void Circuit::addComponent(Component* component) {
-    components.push_back(component);
-}
-
-Component* Circuit::getComponentPtr(const std::string& name) {
-    for (Component* component : components) {
-        if (component->getName() == name) {
-            return component;
-        }
-    }
-    return nullptr;
-}
-
-void Circuit::printSize() const {
-    std::cout << "Nodes: " << nodes.size() << std::endl;
-    std::cout << "Resistor: " << resistor_name_set.size() << std::endl;
-    std::cout << "Capacitor: " << capacitor_name_set.size() << std::endl;
-    std::cout << "Inductor: " << inductor_name_set.size() << std::endl;
-    std::cout << "VCVS: " << vcvs_name_set.size() << std::endl;
-    std::cout << "CCCS: " << cccs_name_set.size() << std::endl;
-    std::cout << "VCCS: " << vccs_name_set.size() << std::endl;
-    std::cout << "CCVS: " << ccvs_name_set.size() << std::endl;
-    std::cout << "Voltage Source: " << voltagesource_name_set.size()
-              << std::endl;
-    std::cout << "Current Source: " << currentsource_name_set.size()
-              << std::endl;
-    std::cout << "Diode: " << diode_name_set.size() << std::endl;
+    std::cout << "-------------------------------" << std::endl;
 }
 
 double Circuit::calcFunctionAtTime(const Function* func,
@@ -241,348 +308,6 @@ double Circuit::calcFunctionAtTime(const Function* func,
     }
 }
 
-void Circuit::parseResistor(const std::string& name,
-                            const std::string& nplus,
-                            const std::string& nminus,
-                            double resistance) {
-    if (!resistor_name_set.insert(name)
-             .second) {  // if already exists in the set
-        qDebug() << "parseResistor(" << name.c_str() << ")";
-        std::cerr << "Parse error: Resistor " << name << " already exists.\n";
-        // throw std::invalid_argument("Resistor already exists.");
-        return;
-    }
-
-    Resistor* resistor = new Resistor(name, nplus, nminus, resistance);
-    if (!hasNode(nplus)) {
-        addNode(nplus);
-    }
-    if (!hasNode(nminus)) {
-        addNode(nminus);
-    }
-    this->addComponent(resistor);
-}
-
-void Circuit::parseCapacitor(const std::string& name,
-                             const std::string& nplus,
-                             const std::string& nminus,
-                             double capacitance,
-                             double initial_voltage) {
-    if (!capacitor_name_set.insert(name)
-             .second) {  // if already exists in the set
-        qDebug() << "parseCapacitor(" << name.c_str() << ")";
-        std::cerr << "Parse error: Capacitor " << name << " already exists.\n";
-        // throw std::invalid_argument("Capacitor already exists.");
-        return;
-    }
-
-    Capacitor* capacitor =
-        new Capacitor(name, nplus, nminus, capacitance, initial_voltage);
-    if (!hasNode(nplus)) {
-        addNode(nplus);
-    }
-    if (!hasNode(nminus)) {
-        addNode(nminus);
-    }
-    // branches.push_back(name);  // only add to branches when using tran
-    // simulation
-    this->addComponent(capacitor);
-    this->addCapacitor(capacitor);
-}
-
-void Circuit::addCapacitor(Capacitor* capacitor) {
-    capacitors.push_back(capacitor);
-}
-
-void Circuit::parseInductor(const std::string& name,
-                            const std::string& nplus,
-                            const std::string& nminus,
-                            double inductance,
-                            double initial_current) {
-    if (!inductor_name_set.insert(name)
-             .second) {  // if already exists in the set
-        qDebug() << "parseInductor(" << name.c_str() << ")";
-        std::cerr << "Parse error: Inductor " << name << " already exists.\n";
-        // throw std::invalid_argument("Inductor already exists.");
-        return;
-    }
-
-    Inductor* inductor =
-        new Inductor(name, nplus, nminus, inductance, initial_current);
-    if (!hasNode(nplus)) {
-        addNode(nplus);
-    }
-    if (!hasNode(nminus)) {
-        addNode(nminus);
-    }
-    branches.push_back(name);
-    this->addComponent(inductor);
-    this->addInductor(inductor);
-}
-
-void Circuit::addInductor(Inductor* inductor) {
-    inductors.push_back(inductor);
-}
-
-void Circuit::parseVCVS(const std::string& name,
-                        const std::string& nplus,
-                        const std::string& nminus,
-                        const std::string& ncplus,
-                        const std::string& ncminus,
-                        double gain) {
-    if (!vcvs_name_set.insert(name).second) {  // if already exists in the set
-        qDebug() << "parseVCVS(" << name.c_str() << ")";
-        std::cerr << "Parse error: VCVS " << name << " already exists.\n";
-        // throw std::invalid_argument("VCVS already exists.");
-        return;
-    }
-
-    VCVS* vcvs = new VCVS(name, nplus, nminus, ncplus, ncminus, gain);
-    if (!hasNode(nplus)) {
-        addNode(nplus);
-    }
-    if (!hasNode(nminus)) {
-        addNode(nminus);
-    }
-    if (!hasNode(ncplus)) {
-        addNode(ncplus);
-    }
-    if (!hasNode(ncminus)) {
-        addNode(ncminus);
-    }
-    branches.push_back(name);
-    this->addComponent(vcvs);
-}
-
-void Circuit::parseCCCS(const std::string& name,
-                        const std::string& nplus,
-                        const std::string& nminus,
-                        const std::string& vsource,
-                        double gain) {
-    if (!cccs_name_set.insert(name).second) {  // if already exists in the set
-        qDebug() << "parseCCCS(" << name.c_str() << ")";
-        std::cerr << "Parse error: CCCS " << name << " already exists.\n";
-        // throw std::invalid_argument("CCCS already exists.");
-        return;
-    }
-    if (!hasBranch(vsource)) {
-        std::cerr << "Parse error: CCCS " << name << " source not found.\n";
-        return;
-    }
-
-    CCCS* cccs = new CCCS(name, nplus, nminus, vsource, gain);
-    if (!hasNode(nplus)) {
-        addNode(nplus);
-    }
-    if (!hasNode(nminus)) {
-        addNode(nminus);
-    }
-    this->addComponent(cccs);
-}
-
-void Circuit::parseVCCS(const std::string& name,
-                        const std::string& nplus,
-                        const std::string& nminus,
-                        const std::string& ncplus,
-                        const std::string& ncminus,
-                        double gain) {
-    if (!vccs_name_set.insert(name).second) {  // if already exists in the set
-        qDebug() << "parseVCCS(" << name.c_str() << ")";
-        std::cerr << "Parse error: VCCS " << name << " already exists.\n";
-        // throw std::invalid_argument("VCCS already exists.");
-        return;
-    }
-
-    VCCS* vccs = new VCCS(name, nplus, nminus, ncplus, ncminus, gain);
-    if (!hasNode(nplus)) {
-        addNode(nplus);
-    }
-    if (!hasNode(nminus)) {
-        addNode(nminus);
-    }
-    if (!hasNode(ncplus)) {
-        addNode(ncplus);
-    }
-    if (!hasNode(ncminus)) {
-        addNode(ncminus);
-    }
-    this->addComponent(vccs);
-}
-
-void Circuit::parseCCVS(const std::string& name,
-                        const std::string& nplus,
-                        const std::string& nminus,
-                        const std::string& vsource,
-                        double gain) {
-    if (!ccvs_name_set.insert(name).second) {  // if already exists in the set
-        qDebug() << "parseCCVS(" << name.c_str() << ")";
-        std::cerr << "Parse error: CCVS " << name << " already exists.\n";
-        // throw std::invalid_argument("CCVS already exists.");
-        return;
-    }
-    if (!hasBranch(vsource)) {
-        std::cerr << "Parse error: CCVS " << name << " source not found.\n";
-        return;
-    }
-
-    CCVS* ccvs = new CCVS(name, nplus, nminus, vsource, gain);
-    if (!hasNode(nplus)) {
-        addNode(nplus);
-    }
-    if (!hasNode(nminus)) {
-        addNode(nminus);
-    }
-    branches.push_back(name);
-    this->addComponent(ccvs);
-}
-
-void Circuit::parseVoltageSource(const std::string& name,
-                                 const std::string& nplus,
-                                 const std::string& nminus,
-                                 double dc_voltage,
-                                 double ac_magnitude,
-                                 double ac_phase) {
-    if (!voltagesource_name_set.insert(name)
-             .second) {  // if already exists in the set
-        qDebug() << "parseVoltageSource(" << name.c_str() << ")";
-        std::cerr << "Parse error: Voltage source " << name
-                  << " already exists.\n";
-        // throw std::invalid_argument("Voltage source already exists.");
-        return;
-    }
-
-    VoltageSource* voltage_source = new VoltageSource(
-        name, nplus, nminus, dc_voltage, ac_magnitude, ac_phase);
-    if (!hasNode(nplus)) {
-        addNode(nplus);
-    }
-    if (!hasNode(nminus)) {
-        addNode(nminus);
-    }
-    // qDebug() << "parseVoltageSource() name: " << name.c_str();
-    branches.push_back(name);
-    this->addComponent(voltage_source);
-    this->addVoltageSource(voltage_source);
-}
-// 重载 parseVoltageSource() 函数，含有 Function 参数
-void Circuit::parseVoltageSource(const std::string& name,
-                                 const std::string& nplus,
-                                 const std::string& nminus,
-                                 const Function& func) {
-    if (!voltagesource_name_set.insert(name)
-             .second) {  // if already exists in the set
-        qDebug() << "parseVoltageSource(" << name.c_str() << ")";
-        std::cerr << "Parse error: Voltage source " << name
-                  << " already exists.\n";
-        // throw std::invalid_argument("Voltage source already exists.");
-        return;
-    }
-
-    VoltageSource* voltage_source =
-        new VoltageSource(name, nplus, nminus, 0, 0, 0);
-    if (!hasNode(nplus)) {
-        addNode(nplus);
-    }
-    if (!hasNode(nminus)) {
-        addNode(nminus);
-    }
-    voltage_source->setFunction(&func);
-    // qDebug() << "parseVoltageSource() name: " << name.c_str();
-    branches.push_back(name);
-    this->addComponent(voltage_source);
-    this->addVoltageSource(voltage_source);
-}
-
-void Circuit::addVoltageSource(VoltageSource* voltage_source) {
-    voltage_sources.push_back(voltage_source);
-}
-
-void Circuit::parseCurrentSource(const std::string& name,
-                                 const std::string& nplus,
-                                 const std::string& nminus,
-                                 double dc_current,
-                                 double ac_magnitude,
-                                 double ac_phase) {
-    if (!currentsource_name_set.insert(name)
-             .second) {  // if already exists in the set
-        qDebug() << "parseCurrentSource(" << name.c_str() << ")";
-        std::cerr << "Parse error: Current source " << name
-                  << " already exists.\n";
-        // throw std::invalid_argument("Current source already exists.");
-        return;
-    }
-
-    CurrentSource* current_source = new CurrentSource(
-        name, nplus, nminus, dc_current, ac_magnitude, ac_phase);
-    if (!hasNode(nplus)) {
-        addNode(nplus);
-    }
-    if (!hasNode(nminus)) {
-        addNode(nminus);
-    }
-    // qDebug() << "parseCurrentSource() name: " << name.c_str();
-    this->addComponent(current_source);
-    this->addCurrentSource(current_source);
-}
-// 重载 parseCurrentSource() 函数，含有 Function 参数
-void Circuit::parseCurrentSource(const std::string& name,
-                                 const std::string& nplus,
-                                 const std::string& nminus,
-                                 const Function& func) {
-    if (!currentsource_name_set.insert(name)
-             .second) {  // if already exists in the set
-        qDebug() << "parseCurrentSource(" << name.c_str() << ")";
-        std::cerr << "Parse error: Current source " << name
-                  << " already exists.\n";
-        // throw std::invalid_argument("Current source already exists.");
-        return;
-    }
-
-    CurrentSource* current_source =
-        new CurrentSource(name, nplus, nminus, 0, 0, 0);
-    if (!hasNode(nplus)) {
-        addNode(nplus);
-    }
-    if (!hasNode(nminus)) {
-        addNode(nminus);
-    }
-    current_source->setFunction(&func);
-    // qDebug() << "parseCurrentSource() name: " << name.c_str();
-    this->addComponent(current_source);
-    this->addCurrentSource(current_source);
-}
-
-void Circuit::addCurrentSource(CurrentSource* current_source) {
-    current_sources.push_back(current_source);
-}
-
-void Circuit::parseDiode(const std::string& name,
-                         const std::string& nplus,
-                         const std::string& nminus,
-                         const std::string& model,
-                         double initial_voltage) {
-    if (!diode_name_set.insert(name).second) {  // if already exists in the set
-        qDebug() << "parseDiode(" << name.c_str() << ")";
-        std::cerr << "Parse error: Diode " << name << " already exists.\n";
-        // throw std::invalid_argument("Diode already exists.");
-        return;
-    }
-
-    Diode* diode = new Diode(name, nplus, nminus, model, initial_voltage);
-    if (!hasNode(nplus)) {
-        addNode(nplus);
-    }
-    if (!hasNode(nminus)) {
-        addNode(nminus);
-    }
-    if (!hasModel(model)) {
-        qDebug() << "parseDiode(" << name.c_str() << ")";
-        std::cerr << "Parse error: Diode " << name << " model not found.\n";
-        return;
-    }
-    this->addComponent(diode);
-}
-
 void Circuit::generateDCMNA() {
     // 生成 DC 状态 MNA 模板
     int node_num = getNodeNum();
@@ -595,7 +320,7 @@ void Circuit::generateDCMNA() {
     arma::vec* RHS =
         new arma::vec(arma::zeros<arma::vec>(matrix_size));  // create RHS
     // qDebug() << "generateDCMNA() matrix_size: " << matrix_size;
-    for (Component* component : components) {
+    for (Component* component : netlist.components) {
         switch (component->getType()) {
             case COMPONENT_RESISTOR: {
                 int id_nplus = getNodeIndex(
@@ -619,13 +344,15 @@ void Circuit::generateDCMNA() {
                     dynamic_cast<Capacitor*>(component)->getNminus());
                 double capacitance =
                     dynamic_cast<Capacitor*>(component)->getCapacitance();
-                // int id_branch = getBranchIndex(component->getName()) +
-                // node_num;
+                int id_branch = getBranchIndex(component->getName()) + node_num;
 
                 (*MNA)(id_nplus, id_nplus) += 0 * capacitance;
                 (*MNA)(id_nminus, id_nminus) += 0 * capacitance;
                 (*MNA)(id_nplus, id_nminus) -= 0 * capacitance;
                 (*MNA)(id_nminus, id_nplus) -= 0 * capacitance;
+                (*MNA)(id_branch, id_nplus) += 0 * capacitance;
+                (*MNA)(id_branch, id_nminus) -= 0 * capacitance;
+                (*MNA)(id_branch, id_branch) = -1;
                 break;
             }
             case COMPONENT_INDUCTOR: {
@@ -769,14 +496,14 @@ void Circuit::generateACMNA() {
     RHS_AC_T = new arma::cx_vec((*RHS_DC_T), RHS_zerofill);
 
     // 生成 AC 状态 MNA 模板
-    for (VoltageSource* voltage_source : voltage_sources) {
+    for (VoltageSource* voltage_source : netlist.voltage_sources) {
         double ac_magnitude = voltage_source->getACMagnitude();
         double ac_phase = voltage_source->getACPhase() / 180 * M_PI;
         int id_branch = getBranchIndex(voltage_source->getName()) + node_num;
 
         (*RHS_AC_T)(id_branch) = ac_magnitude * exp(j * ac_phase);
     }
-    for (CurrentSource* current_source : current_sources) {
+    for (CurrentSource* current_source : netlist.current_sources) {
         int id_nplus = getNodeIndex(current_source->getNplus());
         int id_nminus = getNodeIndex(current_source->getNminus());
         double ac_magnitude = current_source->getACMagnitude();
@@ -797,17 +524,9 @@ void Circuit::generateTranMNA() {
     RHS_TRAN_T = new arma::vec(*RHS_DC_T);
     // (*MNA_TRAN_T).print("MNA_TRAN_T, before resize");
 
-    // Resize the matrices, add additional columns and rows for capacitors
-    int new_size = getNodeNum() + getBranchNum() + capacitors.size();
-    MNA_TRAN_T->resize(new_size, new_size);
-    RHS_TRAN_T->resize(new_size);
-    // (*MNA_TRAN_T).print("MNA_TRAN_T, after resize");
-
     // 生成 Tran 状态 MNA 模板
     // 为 Capacitor 添加额外的 branch
-    for (Capacitor* capacitor : capacitors) {
-        branches.push_back(capacitor->getName());  // only add to branches when
-                                                   // using tran simulation
+    for (Capacitor* capacitor : netlist.capacitors) {
         int id_nplus = getNodeIndex(capacitor->getNplus());
         int id_nminus = getNodeIndex(capacitor->getNminus());
         int id_branch = getBranchIndex(capacitor->getName()) + getNodeNum();
@@ -927,7 +646,7 @@ void Circuit::DCSimulation(int source_type,
         case (COMPONENT_CURRENT_SOURCE): {
             qDebug() << "DCSimulation() source: " << source.c_str();
             iter_name = "current(" + source + ")";
-            Component* current_source = getComponentPtr(source);
+            Component* current_source = netlist.getComponentPtr(source);
             if (current_source == nullptr) {
                 qDebug() << "DCSimulation() current source not found.";
                 return;
@@ -1030,7 +749,7 @@ void Circuit::ACSimulation(int ac_type,
         arma::sp_cx_mat MNA_AC = *MNA_AC_T;
         arma::cx_vec RHS_AC = *RHS_AC_T;
 
-        for (Capacitor* capacitor : capacitors) {
+        for (Capacitor* capacitor : netlist.capacitors) {
             int id_nplus = getNodeIndex(capacitor->getNplus());
             int id_nminus = getNodeIndex(capacitor->getNminus());
             double capacitance = capacitor->getCapacitance();
@@ -1040,7 +759,7 @@ void Circuit::ACSimulation(int ac_type,
             MNA_AC(id_nplus, id_nminus) -= 2 * M_PI * freq * capacitance * j;
             MNA_AC(id_nminus, id_nplus) -= 2 * M_PI * freq * capacitance * j;
         }
-        for (Inductor* inductor : inductors) {
+        for (Inductor* inductor : netlist.inductors) {
             double inductance = inductor->getInductance();
             int id_branch = getBranchIndex(inductor->getName()) + node_num;
 
@@ -1090,7 +809,7 @@ arma::vec Circuit::tranBackEuler(double time,
     arma::vec x_prev_gnd = x_prev;
     x_prev_gnd.insert_rows(0, arma::zeros(1));  // insert ground node
 
-    for (Capacitor* capacitor : capacitors) {
+    for (Capacitor* capacitor : netlist.capacitors) {
         int id_nplus = getNodeIndex(capacitor->getNplus());
         int id_nminus = getNodeIndex(capacitor->getNminus());
         double capacitance = capacitor->getCapacitance();
@@ -1102,7 +821,7 @@ arma::vec Circuit::tranBackEuler(double time,
             capacitance / h * (x_prev_gnd(id_nplus) - x_prev_gnd(id_nminus));
     }
 
-    for (Inductor* inductor : inductors) {
+    for (Inductor* inductor : netlist.inductors) {
         double inductance = inductor->getInductance();
         int id_branch = getBranchIndex(inductor->getName()) + node_num;
 
@@ -1110,7 +829,7 @@ arma::vec Circuit::tranBackEuler(double time,
         RHS_TRAN(id_branch) = -inductance / h * x_prev_gnd(id_branch);
     }
 
-    for (VoltageSource* voltage_source : voltage_sources) {
+    for (VoltageSource* voltage_source : netlist.voltage_sources) {
         if (voltage_source->getFunction() == nullptr) {
             continue;  // 没有 function，直接使用 DC 电压，已在 MNA_TRAN_T
                        // 中存在
@@ -1121,7 +840,7 @@ arma::vec Circuit::tranBackEuler(double time,
                                                  time, tstep, tstop);
     }
 
-    for (CurrentSource* current_source : current_sources) {
+    for (CurrentSource* current_source : netlist.current_sources) {
         if (current_source->getFunction() == nullptr) {
             continue;  // 没有 function，直接使用 DC 电流，已在 MNA_TRAN_T
                        // 中存在
@@ -1184,7 +903,7 @@ void Circuit::TranSimulation(double step, double stop_time, double start_time) {
     arma::sp_mat* MNA_TRAN_0 = new arma::sp_mat(*MNA_TRAN_T);
     arma::vec* RHS_TRAN_0 = new arma::vec(*RHS_TRAN_T);
 
-    for (Capacitor* capacitor : capacitors) {
+    for (Capacitor* capacitor : netlist.capacitors) {
         int id_nplus = getNodeIndex(capacitor->getNplus());
         int id_nminus = getNodeIndex(capacitor->getNminus());
         double initial_voltage = capacitor->getInitialVoltage();
@@ -1197,7 +916,7 @@ void Circuit::TranSimulation(double step, double stop_time, double start_time) {
         (*MNA_TRAN_0)(id_branch, id_branch) = 0;
         (*RHS_TRAN_0)(id_branch) = initial_voltage;
     }
-    for (Inductor* inductor : inductors) {
+    for (Inductor* inductor : netlist.inductors) {
         int id_nplus = getNodeIndex(inductor->getNplus());
         int id_nminus = getNodeIndex(inductor->getNminus());
         double initial_current = inductor->getInitialCurrent();
@@ -1208,7 +927,7 @@ void Circuit::TranSimulation(double step, double stop_time, double start_time) {
         (*MNA_TRAN_0)(id_branch, id_branch) = 1;
         (*RHS_TRAN_0)(id_branch) = initial_current;
     }
-    for (VoltageSource* voltage_source : voltage_sources) {
+    for (VoltageSource* voltage_source : netlist.voltage_sources) {
         if (voltage_source->getFunction() == nullptr) {
             continue;  // 没有 function，直接使用 DC 电压，已在 MNA_TRAN_T
                        // 中存在
@@ -1218,7 +937,7 @@ void Circuit::TranSimulation(double step, double stop_time, double start_time) {
         (*RHS_TRAN_0)(id_branch) =
             calcFunctionAtTime(voltage_source->getFunction(), 0, h, stop_time);
     }
-    for (CurrentSource* current_source : current_sources) {
+    for (CurrentSource* current_source : netlist.current_sources) {
         if (current_source->getFunction() == nullptr) {
             continue;  // 没有 function，直接使用 DC 电流，已在 MNA_TRAN_T
                        // 中存在
@@ -1464,7 +1183,7 @@ void Circuit::printAnalysis(int analysis_type,
     }
 
     // print xdata, ydata and export to csv file
-    std::filesystem::path p(file_path);
+    std::filesystem::path p(netlist.file_path);
     p.replace_extension(".csv");
     std::string csv_file_path = p.string();
     std::ofstream file(csv_file_path);
