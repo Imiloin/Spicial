@@ -3,9 +3,9 @@ A SPICE-like circuit simulator, written in C++.
 
 ## Quick Start
 
-### Install dependencies
+仅在 WSL Ubuntu 22.04 环境经过测试，其他平台的适用性未知。
 
-仅在 WSL Ubuntu 22.04 环境经过测试，其他环境的适用性未知。
+### Install dependencies
 
 ```bash
 sudo apt update

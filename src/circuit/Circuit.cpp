@@ -118,6 +118,39 @@ void Circuit::printBranches() const {
     std::cout << "------------------- " << std::endl;
 }
 
+bool Circuit::hasModel(const std::string& model_name) {
+    for (Model* model : models) {
+        if (model->getName() == model_name) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void Circuit::addModel(Model* model) {
+    models.push_back(model);
+}
+
+Model* Circuit::getModelPtr(const std::string& name) {
+    for (Model* model : models) {
+        if (model->getName() == name) {
+            return model;
+        }
+    }
+    return nullptr;
+}
+
+void Circuit::printModels() const {
+    // print {model: name}
+    std::cout << std::endl;
+    std::cout << "------------------- " << std::endl
+              << "Models: {name}" << std::endl;
+    for (Model* model : models) {
+        std::cout << "{" << model->getName() << "}" << std::endl;
+    }
+    std::cout << "------------------- " << std::endl;
+}
+
 void Circuit::addComponent(Component* component) {
     components.push_back(component);
 }
@@ -527,7 +560,26 @@ void Circuit::parseDiode(const std::string& name,
                          const std::string& nminus,
                          const std::string& model,
                          double initial_voltage) {
-    return;
+    if (!diode_name_set.insert(name).second) {  // if already exists in the set
+        qDebug() << "parseDiode(" << name.c_str() << ")";
+        std::cerr << "Parse error: Diode " << name << " already exists.\n";
+        // throw std::invalid_argument("Diode already exists.");
+        return;
+    }
+
+    Diode* diode = new Diode(name, nplus, nminus, model, initial_voltage);
+    if (!hasNode(nplus)) {
+        addNode(nplus);
+    }
+    if (!hasNode(nminus)) {
+        addNode(nminus);
+    }
+    if (!hasModel) {
+        qDebug() << "parseDiode(" << name.c_str() << ")";
+        std::cerr << "Parse error: Diode " << name << " model not found.\n";
+        return;
+    }
+    this->addComponent(diode);
 }
 
 void Circuit::generateDCMNA() {

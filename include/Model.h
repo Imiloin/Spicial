@@ -1,6 +1,7 @@
 #ifndef SPICIAL_MODEL_H
 #define SPICIAL_MODEL_H
 
+#include <cmath>
 #include <string>
 #include "linetype.h"
 
@@ -32,6 +33,9 @@ class DiodeModel : public Model {
                double n = -1  // if n = -1, then n = ELECTRON_CHARGE / (40 *
                               // BOLTZMANN_CONSTANT * temperture)
     );
+    double calcCurrentAtVoltage(double voltage) const;
+    double calcVoltageAtCurrent(double current) const;
+    double calcConductanceAtVoltage(double voltage) const;  // dI/dV
 };
 
 #endif  // SPICIAL_MODEL_H

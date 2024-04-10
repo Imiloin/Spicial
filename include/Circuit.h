@@ -45,6 +45,14 @@ class Circuit {
 
     void printBranches() const;
 
+    bool hasModel(const std::string& model_name);
+
+    void addModel(Model* model);
+
+    Model* getModelPtr(const std::string& name);
+
+    void printModels() const;
+
     void addComponent(Component* component);
 
     Component* getComponentPtr(const std::string& name);
@@ -183,6 +191,7 @@ class Circuit {
     std::unordered_set<std::string> ccvs_name_set = {};
     std::unordered_set<std::string> voltagesource_name_set = {};
     std::unordered_set<std::string> currentsource_name_set = {};
+    std::unordered_set<std::string> diode_name_set = {};
 
     std::vector<Capacitor*> capacitors;
     std::vector<Inductor*> inductors;

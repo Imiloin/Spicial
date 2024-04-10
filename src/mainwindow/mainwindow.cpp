@@ -264,6 +264,8 @@ void MainWindow::slotDebug() {
 
     circuit->printBranches();
 
+    circuit->printModels();
+
     // circuit->generateDCMNA();  //
 
     circuit->printMNADCTemplate();

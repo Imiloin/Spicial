@@ -31,3 +31,22 @@ DiodeModel::DiodeModel(const std::string& name, double is, double n)
     }
     type = COMPONENT_DIODE;
 }
+
+double DiodeModel::calcCurrentAtVoltage(double voltage) const {
+    if (voltage == 0) {
+        return 0;
+    }
+    return is * (exp((ELECTRON_CHARGE * voltage) / (n * BOLTZMANN_CONSTANT * temperature)) - 1);
+}
+
+double DiodeModel::calcVoltageAtCurrent(double current) const {
+    if (current == 0) {
+        return 0;
+    }
+    return (n * BOLTZMANN_CONSTANT * temperature / ELECTRON_CHARGE) * log(1 + current / is);
+}
+
+double DiodeModel::calcConductanceAtVoltage(double voltage) const {
+    return (is * ELECTRON_CHARGE) / (n * BOLTZMANN_CONSTANT * temperature) *
+           exp((ELECTRON_CHARGE * voltage) / (n * BOLTZMANN_CONSTANT * temperature));
+}
