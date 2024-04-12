@@ -25,18 +25,6 @@ Resistor::Resistor(const std::string& name,
     type = COMPONENT_RESISTOR;
 }
 
-std::string Resistor::getNplus() const {
-    return nplus;
-}
-
-std::string Resistor::getNminus() const {
-    return nminus;
-}
-
-double Resistor::getResistance() const {
-    return resistance;
-}
-
 // **** Capacitor ****
 Capacitor::Capacitor(const std::string& name,
                      const std::string& nplus,
@@ -51,22 +39,6 @@ Capacitor::Capacitor(const std::string& name,
     type = COMPONENT_CAPACITOR;
 }
 
-std::string Capacitor::getNplus() const {
-    return nplus;
-}
-
-std::string Capacitor::getNminus() const {
-    return nminus;
-}
-
-double Capacitor::getCapacitance() const {
-    return capacitance;
-}
-
-double Capacitor::getInitialVoltage() const {
-    return initial_voltage;
-}
-
 // **** Inductor ****
 Inductor::Inductor(const std::string& name,
                    const std::string& nplus,
@@ -79,22 +51,6 @@ Inductor::Inductor(const std::string& name,
       inductance(inductance),
       initial_current(initial_current) {
     type = COMPONENT_INDUCTOR;
-}
-
-std::string Inductor::getNplus() const {
-    return nplus;
-}
-
-std::string Inductor::getNminus() const {
-    return nminus;
-}
-
-double Inductor::getInductance() const {
-    return inductance;
-}
-
-double Inductor::getInitialCurrent() const {
-    return initial_current;
 }
 
 // **** VCVS ****
@@ -113,26 +69,6 @@ VCVS::VCVS(const std::string& name,
     type = COMPONENT_VCVS;
 }
 
-std::string VCVS::getNplus() const {
-    return nplus;
-}
-
-std::string VCVS::getNminus() const {
-    return nminus;
-}
-
-std::string VCVS::getNCplus() const {
-    return ncplus;
-}
-
-std::string VCVS::getNCminus() const {
-    return ncminus;
-}
-
-double VCVS::getGain() const {
-    return gain;
-}
-
 // **** CCCS ****
 CCCS::CCCS(const std::string& name,
            const std::string& nplus,
@@ -145,22 +81,6 @@ CCCS::CCCS(const std::string& name,
       vsource(vsource),
       gain(gain) {
     type = COMPONENT_CCCS;
-}
-
-std::string CCCS::getNplus() const {
-    return nplus;
-}
-
-std::string CCCS::getNminus() const {
-    return nminus;
-}
-
-std::string CCCS::getVsource() const {
-    return vsource;
-}
-
-double CCCS::getGain() const {
-    return gain;
 }
 
 // **** VCCS ****
@@ -179,26 +99,6 @@ VCCS::VCCS(const std::string& name,
     type = COMPONENT_VCCS;
 }
 
-std::string VCCS::getNplus() const {
-    return nplus;
-}
-
-std::string VCCS::getNminus() const {
-    return nminus;
-}
-
-std::string VCCS::getNCplus() const {
-    return ncplus;
-}
-
-std::string VCCS::getNCminus() const {
-    return ncminus;
-}
-
-double VCCS::getGain() const {
-    return gain;
-}
-
 // **** CCVS ****
 CCVS::CCVS(const std::string& name,
            const std::string& nplus,
@@ -211,22 +111,6 @@ CCVS::CCVS(const std::string& name,
       vsource(vsource),
       gain(gain) {
     type = COMPONENT_CCVS;
-}
-
-std::string CCVS::getNplus() const {
-    return nplus;
-}
-
-std::string CCVS::getNminus() const {
-    return nminus;
-}
-
-std::string CCVS::getVsource() const {
-    return vsource;
-}
-
-double CCVS::getGain() const {
-    return gain;
 }
 
 // **** VoltageSource ****
@@ -244,26 +128,6 @@ VoltageSource::VoltageSource(const std::string& name,
       ac_phase(ac_phase) {
     type = COMPONENT_VOLTAGE_SOURCE;
     function = nullptr;
-}
-
-std::string VoltageSource::getNplus() const {
-    return nplus;
-}
-
-std::string VoltageSource::getNminus() const {
-    return nminus;
-}
-
-double VoltageSource::getDCVoltage() const {
-    return dc_voltage;
-}
-
-double VoltageSource::getACMagnitude() const {
-    return ac_magnitude;
-}
-
-double VoltageSource::getACPhase() const {
-    return ac_phase;
 }
 
 void VoltageSource::setFunction(const Function* func) {
@@ -291,26 +155,6 @@ CurrentSource::CurrentSource(const std::string& name,
     function = nullptr;
 }
 
-std::string CurrentSource::getNplus() const {
-    return nplus;
-}
-
-std::string CurrentSource::getNminus() const {
-    return nminus;
-}
-
-double CurrentSource::getDCCurrent() const {
-    return dc_current;
-}
-
-double CurrentSource::getACMagnitude() const {
-    return ac_magnitude;
-}
-
-double CurrentSource::getACPhase() const {
-    return ac_phase;
-}
-
 void CurrentSource::setFunction(const Function* func) {
     function = const_cast<Function*>(func);
 }
@@ -333,18 +177,6 @@ Diode::Diode(const std::string& name,
     type = COMPONENT_DIODE;
 }
 
-std::string Diode::getNplus() const {
-    return nplus;
-}
-
-std::string Diode::getNminus() const {
-    return nminus;
-}
-
-std::string Diode::getModelname() const {
-    return modelname;
-}
-
-double Diode::getInitialVoltage() const {
-    return initial_voltage;
+DiodeModel* Diode::getModel() const {
+    return model;
 }

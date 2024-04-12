@@ -1,27 +1,43 @@
 #ifndef SPICIAL_SIMULATION_H
 #define SPICIAL_SIMULATION_H
 
-#include "Circuit.h"
+#include <armadillo>
+#include "Netlist.h"
+#include "Nodes.h"
+#include "Branches.h"
 #include "structs.h"
 
 class Simulation {
    public:
-    Simulation(Circuit& circuit, Analysis& analysis);
-    ~Simulation();
+    Simulation(Analysis& analysis_, Netlist& netlist_, Nodes& nodes_, Branches& branches_);
+    virtual ~Simulation();
 
     void generateMNA();  // generate MNA and RHS templates
 
+    virtual void runSimulation() = 0;
+
    protected:
-    Circuit& circuit;
     Analysis& analysis;
     Netlist& netlist;
-    std::vector<std::string>& nodes;
-    std::vector<std::string>& nodes_exgnd;
-    std::vector<std::string>& branches;
+    Nodes& nodes;
+    Branches& branches;
 
     // MNA and RHS templates
-    arma::sp_mat* MNA_T;
-    arma::vec* RHS_T;
+    static arma::sp_mat* MNA_T;
+    static arma::vec* RHS_T;
+};
+
+class DCSimulation : public Simulation {
+   public:
+    DCSimulation(Analysis& analysis_, Netlist& netlist_, Nodes& nodes_, Branches& branches_);
+
+    void runSimulation();
+   
+   private:
+    arma::sp_mat* MNA_DC_T;
+    arma::vec* RHS_DC_T;
+
+    std::vector<arma::vec> iter_results;      // exclude gnd!!!
 };
 
 #endif  // SPICIAL_SIMULATION_H

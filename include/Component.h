@@ -2,9 +2,9 @@
 #define SPICIAL_COMPONENT_H
 
 #include <string>
+#include "Model.h"
 #include "linetype.h"
 #include "structs.h"
-#include "Model.h"
 
 class Component {
    protected:
@@ -13,7 +13,6 @@ class Component {
 
    public:
     friend class Circuit;
-    friend class Simulation;
     Component(const std::string& name);
     virtual ~Component();
     int getType() const;
@@ -31,14 +30,15 @@ class Resistor : public Component {
 
    public:
     friend class Circuit;
-    friend class Simulation;
     Resistor(const std::string& name,
              const std::string& nplus,
              const std::string& nminus,
              double resistance);
-    std::string getNplus() const;
-    std::string getNminus() const;
-    double getResistance() const;
+    std::string getNplus() const { return nplus; }
+    std::string getNminus() const { return nminus; }
+    double getResistance() const { return resistance; }
+    int getIdNplus() const { return id_nplus; }
+    int getIdNminus() const { return id_nminus; }
 };
 
 // Capacitor
@@ -54,16 +54,18 @@ class Capacitor : public Component {
 
    public:
     friend class Circuit;
-    friend class Simulation;
     Capacitor(const std::string& name,
               const std::string& nplus,
               const std::string& nminus,
               double capacitance,
               double initial_voltage);
-    std::string getNplus() const;
-    std::string getNminus() const;
-    double getCapacitance() const;
-    double getInitialVoltage() const;
+    std::string getNplus() const { return nplus; }
+    std::string getNminus() const { return nminus; }
+    double getCapacitance() const { return capacitance; }
+    double getInitialVoltage() const { return initial_voltage; }
+    int getIdNplus() const { return id_nplus; }
+    int getIdNminus() const { return id_nminus; }
+    int getIdBranch() const { return id_branch; }
 };
 
 // Inductor
@@ -79,16 +81,18 @@ class Inductor : public Component {
 
    public:
     friend class Circuit;
-    friend class Simulation;
     Inductor(const std::string& name,
              const std::string& nplus,
              const std::string& nminus,
              double inductance,
              double initial_current);
-    std::string getNplus() const;
-    std::string getNminus() const;
-    double getInductance() const;
-    double getInitialCurrent() const;
+    std::string getNplus() const { return nplus; }
+    std::string getNminus() const { return nminus; }
+    double getInductance() const { return inductance; }
+    double getInitialCurrent() const { return initial_current; }
+    int getIdNplus() const { return id_nplus; }
+    int getIdNminus() const { return id_nminus; }
+    int getIdBranch() const { return id_branch; }
 };
 
 // VCVS
@@ -107,18 +111,22 @@ class VCVS : public Component {
 
    public:
     friend class Circuit;
-    friend class Simulation;
     VCVS(const std::string& name,
          const std::string& nplus,
          const std::string& nminus,
          const std::string& ncplus,
          const std::string& ncminus,
          double gain);
-    std::string getNplus() const;
-    std::string getNminus() const;
-    std::string getNCplus() const;
-    std::string getNCminus() const;
-    double getGain() const;
+    std::string getNplus() const { return nplus; }
+    std::string getNminus() const { return nminus; }
+    std::string getNCplus() const { return ncplus; }
+    std::string getNCminus() const { return ncminus; }
+    double getGain() const { return gain; }
+    int getIdNplus() const { return id_nplus; }
+    int getIdNminus() const { return id_nminus; }
+    int getIdNCplus() const { return id_ncplus; }
+    int getIdNCminus() const { return id_ncminus; }
+    int getIdBranch() const { return id_branch; }
 };
 
 // CCCS
@@ -133,16 +141,17 @@ class CCCS : public Component {
 
    public:
     friend class Circuit;
-    friend class Simulation;
     CCCS(const std::string& name,
          const std::string& nplus,
          const std::string& nminus,
          const std::string& vsource,
          double gain);
-    std::string getNplus() const;
-    std::string getNminus() const;
-    std::string getVsource() const;
-    double getGain() const;
+    std::string getNplus() const { return nplus; }
+    std::string getNminus() const { return nminus; }
+    std::string getVsource() const { return vsource; }
+    double getGain() const { return gain; }
+    int getIdNplus() const { return id_nplus; }
+    int getIdNminus() const { return id_nminus; }
 };
 
 // VCCS
@@ -160,18 +169,21 @@ class VCCS : public Component {
 
    public:
     friend class Circuit;
-    friend class Simulation;
     VCCS(const std::string& name,
          const std::string& nplus,
          const std::string& nminus,
          const std::string& ncplus,
          const std::string& ncminus,
          double gain);
-    std::string getNplus() const;
-    std::string getNminus() const;
-    std::string getNCplus() const;
-    std::string getNCminus() const;
-    double getGain() const;
+    std::string getNplus() const { return nplus; }
+    std::string getNminus() const { return nminus; }
+    std::string getNCplus() const { return ncplus; }
+    std::string getNCminus() const { return ncminus; }
+    double getGain() const { return gain; }
+    int getIdNplus() const { return id_nplus; }
+    int getIdNminus() const { return id_nminus; }
+    int getIdNCplus() const { return id_ncplus; }
+    int getIdNCminus() const { return id_ncminus; }
 };
 
 // CCVS
@@ -187,16 +199,18 @@ class CCVS : public Component {
 
    public:
     friend class Circuit;
-    friend class Simulation;
     CCVS(const std::string& name,
          const std::string& nplus,
          const std::string& nminus,
          const std::string& vsource,
          double gain);
-    std::string getNplus() const;
-    std::string getNminus() const;
-    std::string getVsource() const;
-    double getGain() const;
+    std::string getNplus() const { return nplus; }
+    std::string getNminus() const { return nminus; }
+    std::string getVsource() const { return vsource; }
+    double getGain() const { return gain; }
+    int getIdNplus() const { return id_nplus; }
+    int getIdNminus() const { return id_nminus; }
+    int getIdBranch() const { return id_branch; }
 };
 
 // VoltageSource
@@ -214,20 +228,22 @@ class VoltageSource : public Component {
 
    public:
     friend class Circuit;
-    friend class Simulation;
     VoltageSource(const std::string& name,
                   const std::string& nplus,
                   const std::string& nminus,
                   double dc_voltage,
                   double ac_magnitude,
                   double ac_phase);
-    std::string getNplus() const;
-    std::string getNminus() const;
-    double getDCVoltage() const;
-    double getACMagnitude() const;
-    double getACPhase() const;
+    std::string getNplus() const { return nplus; }
+    std::string getNminus() const { return nminus; }
+    double getDCVoltage() const { return dc_voltage; }
+    double getACMagnitude() const { return ac_magnitude; }
+    double getACPhase() const { return ac_phase; }
     void setFunction(const Function* func);
     Function* getFunction() const;
+    int getIdNplus() const { return id_nplus; }
+    int getIdNminus() const { return id_nminus; }
+    int getIdBranch() const { return id_branch; }
 };
 
 // CurrentSource
@@ -244,20 +260,21 @@ class CurrentSource : public Component {
 
    public:
     friend class Circuit;
-    friend class Simulation;
     CurrentSource(const std::string& name,
                   const std::string& nplus,
                   const std::string& nminus,
                   double dc_current,
                   double ac_magnitude,
                   double ac_phase);
-    std::string getNplus() const;
-    std::string getNminus() const;
-    double getDCCurrent() const;
-    double getACMagnitude() const;
-    double getACPhase() const;
+    std::string getNplus() const { return nplus; }
+    std::string getNminus() const { return nminus; }
+    double getDCCurrent() const { return dc_current; }
+    double getACMagnitude() const { return ac_magnitude; }
+    double getACPhase() const { return ac_phase; }
     void setFunction(const Function* func);
     Function* getFunction() const;
+    int getIdNplus() const { return id_nplus; }
+    int getIdNminus() const { return id_nminus; }
 };
 
 // Diode
@@ -273,16 +290,18 @@ class Diode : public Component {
 
    public:
     friend class Circuit;
-    friend class Simulation;
     Diode(const std::string& name,
           const std::string& nplus,
           const std::string& nminus,
           const std::string& modelname,
           double initial_voltage);
-    std::string getNplus() const;
-    std::string getNminus() const;
-    std::string getModelname() const;
-    double getInitialVoltage() const;
+    std::string getNplus() const { return nplus; }
+    std::string getNminus() const { return nminus; }
+    std::string getModelname() const { return modelname; }
+    double getInitialVoltage() const { return initial_voltage; }
+    int getIdNplus() const { return id_nplus; }
+    int getIdNminus() const { return id_nminus; }
+    DiodeModel* getModel() const;
 };
 
 #endif  // SPICIAL_COMPONENT_H

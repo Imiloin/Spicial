@@ -38,6 +38,7 @@ void Netlist::addModel(Model* model) {
     models.push_back(model);
 }
 
+/*
 Model* Netlist::getModelPtr(const std::string& name) {
     for (Model* model : models) {
         if (model->getName() == name) {
@@ -45,6 +46,20 @@ Model* Netlist::getModelPtr(const std::string& name) {
         }
     }
     return nullptr;
+}
+*/
+
+Model* Netlist::getModelPtr(const std::string& name) {
+    // std::vector<Model*>& models;
+    auto it = std::find_if(models.begin(), models.end(), [&name](Model* model) {
+        return model->getName() == name;
+    });
+    if (it == models.end()) {
+        qDebug() << "getModelPtr(" << name.c_str() << ")";
+        printf("Model not found\n");
+        return nullptr;
+    }
+    return *it;
 }
 
 void Netlist::printModels() const {
@@ -74,6 +89,7 @@ void Netlist::replaceComponent(const std::string& name,
     }
 }
 
+/*
 Component* Netlist::getComponentPtr(const std::string& name) {
     for (Component* component : components) {
         if (component->getName() == name) {
@@ -81,6 +97,19 @@ Component* Netlist::getComponentPtr(const std::string& name) {
         }
     }
     return nullptr;
+}
+*/
+
+Component* Netlist::getComponentPtr(const std::string& name) {
+    auto it = std::find_if(
+        components.begin(), components.end(),
+        [&name](Component* component) { return component->getName() == name; });
+    if (it == components.end()) {
+        qDebug() << "getComponentPtr(" << name.c_str() << ")"
+                 << "Component not found";
+        return nullptr;
+    }
+    return *it;
 }
 
 void Netlist::printComponentSize() const {
@@ -318,7 +347,8 @@ void Netlist::parseDiode(const std::string& name,
                          double initial_voltage) {
     if (!hasModel(modelname)) {
         qDebug() << "parseDiode(" << name.c_str() << ")";
-        std::cerr << "Parse warning: Diode " << modelname << " model not found.\n";
+        std::cerr << "Parse warning: Diode " << modelname
+                  << " model not found.\n";
         return;
     }
 

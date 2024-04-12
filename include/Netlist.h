@@ -3,7 +3,6 @@
 
 /** 仅保存解析得到的网表，不进行任何仿真 */
 
-#include <complex>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -22,8 +21,11 @@ class Netlist {
     Netlist(const std::string& file);
     ~Netlist();
 
-    friend class Simulation;
     friend class Circuit;
+    friend class Simulation;
+    friend class DCSimulation;
+    friend class ACSimulation;
+    friend class TranSimulation;
 
     bool hasModel(const std::string& model_name);
 
