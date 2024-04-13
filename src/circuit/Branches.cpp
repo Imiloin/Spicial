@@ -17,7 +17,7 @@ int Branches::addBranch(const std::string& newBranch) {
     return branches.size() - 1;
 }
 
-int Branches::getBranchIndex(const std::string& name) {
+int Branches::getBranchIndex(const std::string& name) const {
     auto it = std::find(branches.begin(), branches.end(), name);
     if (it == branches.end()) {
         qDebug() << "getBranchIndex(" << name.c_str() << ")";

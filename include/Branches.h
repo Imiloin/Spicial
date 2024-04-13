@@ -10,7 +10,7 @@ class Branches {
     ~Branches();
 
     int addBranch(const std::string& newBranch);
-    int getBranchIndex(const std::string& name);
+    int getBranchIndex(const std::string& name) const;
     int getBranchNum() const;
     void printBranches() const;
 

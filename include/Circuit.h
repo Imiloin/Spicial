@@ -2,7 +2,7 @@
 #define SPICIAL_CIRCUIT_H
 
 // #include <algorithm>
-// #include <complex>
+#include <complex>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -27,18 +27,29 @@ class Circuit {
 
     void printNodes();
     void printBranches();
-    
+
     Component* getComponentPtr(const std::string& name);
 
     Model* getModelPtr(const std::string& name);
 
     void runSimulations();
 
-    void printAnalysis(int analysis_type,
-                       const std::vector<Variable>& var_list);
-    void plotAnalysis(int analysis_type, const std::vector<Variable>& var_list);
+    std::vector<ColumnData> createOutputYData(  // 重载实数版本
+        const std::vector<Variable>& var_list,
+        const std::vector<arma::vec>& iter_results);
+    std::vector<ColumnData> createOutputYData(  // 重载复数版本
+        const std::vector<Variable>& var_list,
+        const std::vector<arma::cx_vec>& iter_cresults);
+    void outputResults();
+    void printOutputData(ColumnData& xdata,
+                         std::vector<ColumnData>& ydata,
+                         std::string sim_type,
+                         int sim_id = 0) const;
+    void plotOutputData(ColumnData& xdata,
+                        std::vector<ColumnData>& ydata) const;
+
     // 其他方法...
-    void printResults() const;
+    // void printResults() const;
 
    private:
     Netlist& netlist;
@@ -47,18 +58,18 @@ class Circuit {
     Nodes nodes;
     Branches branches;  // use component name as branch name
 
-    // 从 netlist 中获取的 components, models
-    // std::list<Component*> components;
-    // std::vector<Model*>& models;
-
     // Simulation lists
     std::list<DCSimulation*> dc_simulations;
     // std::list<ACSimulation*> ac_simulations;
     // std::list<TranSimulation*> tran_simulations;
 
-    // save results of print or plot
-    // ColumnData xdata;
-    // std::vector<ColumnData> ydata;
+    // Output requests
+    std::vector<Variable> dc_print_requests;
+    std::vector<Variable> dc_plot_requests;  // 所有的 plot 也会顺便 print
+    // std::vector<Variable> ac_print_requests;
+    // std::vector<Variable> ac_plot_requests;
+    // std::vector<Variable> tran_print_requests;
+    // std::vector<Variable> tran_plot_requests;
 };
 
 #endif  // SPICIAL_CIRCUIT_H

@@ -66,7 +66,7 @@ void Simulation::generateMNA() {
                 int id_nplus = inductor->getIdNplus();
                 int id_nminus = inductor->getIdNminus();
                 int id_branch = inductor->getIdBranch();
-                double inductance = inductor->getInductance();
+                // double inductance = inductor->getInductance();
 
                 (*MNA)(id_nplus, id_branch) = 1;
                 (*MNA)(id_nminus, id_branch) = -1;
@@ -242,7 +242,7 @@ void DCSimulation::runSimulation() {
                 if (!status) {
                     qDebug() << "DCSimulation() solve failed.";
                 } else {
-                    x.print("DCSimulation() x:");  /////////////////////
+                    // x.print("DCSimulation() x:");  /////////////////////
                 }
                 iter_results.push_back(x);
             }
@@ -292,7 +292,7 @@ void DCSimulation::runSimulation() {
                 if (!status) {
                     qDebug() << "DCSimulation() solve failed.";
                 } else {
-                    x.print("DCSimulation() x:");  /////////////////////
+                    // x.print("DCSimulation() x:");  /////////////////////
                 }
                 iter_results.push_back(x);
             }
@@ -301,4 +301,11 @@ void DCSimulation::runSimulation() {
         default:
             break;
     }
+}
+
+const std::vector<arma::vec>& DCSimulation::getIterResults() {
+    if (iter_results.empty()) {
+        qDebug() << "DCSimulation() iter_results is empty.";
+    }
+    return iter_results;
 }

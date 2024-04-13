@@ -39,7 +39,7 @@ class Netlist {
 
     void replaceComponent(const std::string& name, Component* newComponent);
 
-    Component* getComponentPtr(const std::string& name);
+    Component* getComponentPtr(const std::string& name) const;
 
     void parseResistor(const std::string& name,
                        const std::string& nplus,

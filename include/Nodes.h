@@ -10,8 +10,8 @@ class Nodes {
     ~Nodes();
 
     int addNode(const std::string& newNode);
-    int getNodeIndex(const std::string& name);
-    int getNodeIndexExgnd(const std::string& name);
+    int getNodeIndex(const std::string& name) const;
+    int getNodeIndexExgnd(const std::string& name) const;
     int getNodeNum() const;
     int getNodeNumExgnd() const;
     void printNodes() const;

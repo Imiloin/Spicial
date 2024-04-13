@@ -21,7 +21,7 @@ int Nodes::addNode(const std::string& newNode) {
     return nodes.size() - 1;
 }
 
-int Nodes::getNodeIndex(const std::string& name) {  // 获取节点的编号
+int Nodes::getNodeIndex(const std::string& name) const {  // 获取节点的编号
     auto it = std::find(nodes.begin(), nodes.end(), name);
     if (it == nodes.end()) {
         qDebug() << "getNodeIndex(" << name.c_str() << ")";
@@ -31,7 +31,11 @@ int Nodes::getNodeIndex(const std::string& name) {  // 获取节点的编号
     return std::distance(nodes.begin(), it);
 }
 
-int Nodes::getNodeIndexExgnd(const std::string& name) {
+int Nodes::getNodeIndexExgnd(const std::string& name) const {
+    if (name == "0") {
+        qDebug() << "getNodeIndexExgnd() trying to get ground node";
+        return -1;
+    }
     if (nodes.size() < 2) {
         printf("No nodes excluding ground\n");
         return -1;

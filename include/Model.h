@@ -29,7 +29,7 @@ class DiodeModel : public Model {
 
    public:
     DiodeModel(const std::string& name,
-               double is = 1,
+               double is = 1e-12,  // saturation current default 1e-12
                double n = -1  // if n = -1, then n = ELECTRON_CHARGE / (40 *
                               // BOLTZMANN_CONSTANT * temperture)
     );

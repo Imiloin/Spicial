@@ -30,7 +30,7 @@ struct Analysis {
 
 struct Output {
     int output_type;  // PRINT, PLOT
-    int analysis_type;  // OP, AC, DC, TRAN
+    int analysis_type;  // OP, DC, AC, TRAN
     std::vector<Variable> var_list;
 };
 

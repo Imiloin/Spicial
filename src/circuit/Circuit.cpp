@@ -6,15 +6,11 @@ Circuit::Circuit(Netlist& netlist_) : netlist(netlist_) {
 }
 
 Circuit::~Circuit() {
-    /*
-    for (auto& component : components)   // delete components
-        delete component;
-    for (auto& model : models)   // delete models
-        delete model;
-    */
+    // delete simulations
     for (DCSimulation* sim : dc_simulations) {
         delete sim;
     }
+    /////////
 }
 
 void Circuit::preProcess() {
@@ -188,6 +184,7 @@ Model* Circuit::getModelPtr(const std::string& name) {
 }
 
 void Circuit::runSimulations() {
+    qDebug() << "runSimulations()";
     for (Analysis* analysis : netlist.analyses) {
         switch (analysis->analysis_type) {
             case ANALYSIS_DC: {
@@ -195,6 +192,7 @@ void Circuit::runSimulations() {
                 DCSimulation* dc_simulation =
                     new DCSimulation(*analysis, netlist, nodes, branches);
                 dc_simulation->runSimulation();
+                dc_simulations.push_back(dc_simulation);
                 break;
             }
             case ANALYSIS_AC: {
@@ -208,4 +206,329 @@ void Circuit::runSimulations() {
             }
         }
     }
+}
+
+std::vector<ColumnData> Circuit::createOutputYData(
+    const std::vector<Variable>& var_list,
+    const std::vector<arma::vec>& iter_results) {
+    std::vector<ColumnData> ydata;
+    // 不要用 getComponentPtr()，里面的索引包含地节点
+    for (const auto& var : var_list) {
+        for (const auto& node_branch : var.nodes) {
+            ColumnData y;
+            switch (var.type) {
+                case TOKEN_VAR_VOLTAGE_REAL: {
+                    std::cout << "Warning: voltage real should be used with AC "
+                                 "analysis only! Ignored."
+                              << std::endl;
+                    break;
+                }
+                case TOKEN_VAR_VOLTAGE_IMAG: {
+                    std::cout << "Warning: voltage imag should be used with AC "
+                                 "analysis only! Ignored."
+                              << std::endl;
+                    break;
+                }
+                case TOKEN_VAR_VOLTAGE_MAG: {
+                    y.name = "V(" + node_branch + ")";
+                    int id_node = nodes.getNodeIndexExgnd(node_branch);
+                    for (const auto& result : iter_results) {
+                        y.values.push_back(result(id_node));
+                    }
+                    break;
+                }
+                case TOKEN_VAR_VOLTAGE_PHASE: {
+                    std::cout
+                        << "Warning: voltage phase should be used with AC "
+                           "analysis only! Ignored."
+                        << std::endl;
+                    break;
+                }
+                case TOKEN_VAR_VOLTAGE_DB: {
+                    y.name = "VDB(" + node_branch + ")";
+                    int id_node = nodes.getNodeIndexExgnd(node_branch);
+                    for (const auto& result : iter_results) {
+                        y.values.push_back(20 * log10(result(id_node)));
+                    }
+                    break;
+                }
+                case TOKEN_VAR_CURRENT_REAL: {
+                    std::cout << "Warning: current real should be used with AC "
+                                 "analysis only! Ignored."
+                              << std::endl;
+                    break;
+                }
+                case TOKEN_VAR_CURRENT_IMAG: {
+                    std::cout << "Warning: current imag should be used with AC "
+                                 "analysis only! Ignored."
+                              << std::endl;
+                    break;
+                }
+                case TOKEN_VAR_CURRENT_MAG: {
+                    y.name = "I(" + node_branch + ")";
+                    int node_num = nodes.getNodeNumExgnd();
+                    int id_branch =
+                        branches.getBranchIndex(node_branch) + node_num;
+                    for (const auto& result : iter_results) {
+                        y.values.push_back(result(id_branch));
+                    }
+                    break;
+                }
+                case TOKEN_VAR_CURRENT_PHASE: {
+                    std::cout
+                        << "Warning: current phase should be used with AC "
+                           "analysis only! Ignored."
+                        << std::endl;
+                    break;
+                }
+                case TOKEN_VAR_CURRENT_DB: {
+                    y.name = "IDB(" + node_branch + ")";
+                    int node_num = nodes.getNodeNumExgnd();
+                    int id_branch =
+                        branches.getBranchIndex(node_branch) + node_num;
+                    for (const auto& result : iter_results) {
+                        y.values.push_back(20 * log10(result(id_branch)));
+                    }
+                    break;
+                }
+                default: {
+                    qDebug() << "createOutputYData() No such variable type!";
+                    break;
+                }
+            }
+            ydata.push_back(y);
+        }
+    }
+    return ydata;
+}
+
+std::vector<ColumnData> Circuit::createOutputYData(
+    const std::vector<Variable>& var_list,
+    const std::vector<arma::cx_vec>& iter_cresults) {
+    std::vector<ColumnData> ydata;
+
+    for (const auto& var : var_list) {
+        for (const auto& node_branch : var.nodes) {
+            ColumnData y;
+            switch (var.type) {
+                case TOKEN_VAR_VOLTAGE_REAL: {
+                    y.name = "VR(" + node_branch + ")";
+                    int id_node = nodes.getNodeIndexExgnd(node_branch);
+                    for (const auto& cresult : iter_cresults) {
+                        y.values.push_back(real(cresult(id_node)));
+                    }
+                    break;
+                }
+                case TOKEN_VAR_VOLTAGE_IMAG: {
+                    y.name = "VI(" + node_branch + ")";
+                    int id_node = nodes.getNodeIndexExgnd(node_branch);
+                    for (const auto& cresult : iter_cresults) {
+                        y.values.push_back(imag(cresult(id_node)));
+                    }
+                    break;
+                }
+                case TOKEN_VAR_VOLTAGE_MAG: {
+                    y.name = "V(" + node_branch + ")";
+                    int id_node = nodes.getNodeIndexExgnd(node_branch);
+                    for (const auto& cresult : iter_cresults) {
+                        y.values.push_back(abs(cresult(id_node)));
+                    }
+                    break;
+                }
+                case TOKEN_VAR_VOLTAGE_PHASE: {
+                    y.name = "VP(" + node_branch + ")";
+                    int id_node = nodes.getNodeIndexExgnd(node_branch);
+                    for (const auto& cresult : iter_cresults) {
+                        y.values.push_back(arg(cresult(id_node)));
+                    }
+                    break;
+                }
+                case TOKEN_VAR_VOLTAGE_DB: {
+                    y.name = "VDB(" + node_branch + ")";
+                    int id_node = nodes.getNodeIndexExgnd(node_branch);
+                    for (const auto& cresult : iter_cresults) {
+                        y.values.push_back(20 * log10(abs(cresult(id_node))));
+                    }
+                    break;
+                }
+                case TOKEN_VAR_CURRENT_REAL: {
+                    y.name = "IR(" + node_branch + ")";
+                    int node_num = nodes.getNodeNumExgnd();
+                    int id_branch =
+                        branches.getBranchIndex(node_branch) + node_num;
+                    for (const auto& cresult : iter_cresults) {
+                        y.values.push_back(real(cresult(id_branch)));
+                    }
+                    break;
+                }
+                case TOKEN_VAR_CURRENT_IMAG: {
+                    y.name = "II(" + node_branch + ")";
+                    int node_num = nodes.getNodeNumExgnd();
+                    int id_branch =
+                        branches.getBranchIndex(node_branch) + node_num;
+                    for (const auto& cresult : iter_cresults) {
+                        y.values.push_back(imag(cresult(id_branch)));
+                    }
+                    break;
+                }
+                case TOKEN_VAR_CURRENT_MAG: {
+                    y.name = "I(" + node_branch + ")";
+                    int node_num = nodes.getNodeNumExgnd();
+                    int id_branch =
+                        branches.getBranchIndex(node_branch) + node_num;
+                    for (const auto& cresult : iter_cresults) {
+                        y.values.push_back(abs(cresult(id_branch)));
+                    }
+                    break;
+                }
+                case TOKEN_VAR_CURRENT_PHASE: {
+                    y.name = "IP(" + node_branch + ")";
+                    int node_num = nodes.getNodeNumExgnd();
+                    int id_branch =
+                        branches.getBranchIndex(node_branch) + node_num;
+                    for (const auto& cresult : iter_cresults) {
+                        y.values.push_back(arg(cresult(id_branch)));
+                    }
+                    break;
+                }
+                case TOKEN_VAR_CURRENT_DB: {
+                    y.name = "IDB(" + node_branch + ")";
+                    int node_num = nodes.getNodeNumExgnd();
+                    int id_branch =
+                        branches.getBranchIndex(node_branch) + node_num;
+                    for (const auto& cresult : iter_cresults) {
+                        y.values.push_back(20 * log10(abs(cresult(id_branch))));
+                    }
+                    break;
+                }
+                default: {
+                    qDebug() << "createOutputYData() No such variable type!";
+                    break;
+                }
+            }
+            ydata.push_back(y);
+        }
+    }
+    return ydata;
+}
+
+void Circuit::outputResults() {
+    // 首先遍历所有的 output，将相同类型的输出放在一起（例如可能有多个 .print dc
+    // 语句）
+    qDebug() << "outputResults()";
+    for (Output* output : netlist.outputs) {
+        switch (output->analysis_type) {
+            case TOKEN_ANALYSIS_OP: {
+                break;
+            }
+            case TOKEN_ANALYSIS_DC: {
+                // print, plot 均加入 dc_print_requests
+                dc_print_requests.insert(dc_print_requests.end(),
+                                         output->var_list.begin(),
+                                         output->var_list.end());
+                if (output->output_type == ANALYSIS_PLOT) {
+                    dc_plot_requests.insert(dc_plot_requests.end(),
+                                            output->var_list.begin(),
+                                            output->var_list.end());
+                }
+                break;
+            }
+            case TOKEN_ANALYSIS_AC: {
+                break;
+            }
+            case TOKEN_ANALYSIS_TRAN: {
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+    }
+    // 然后分别对于 op、dc、ac、tran 进行输出
+    int dc_sim_id = 0;
+    for (DCSimulation* dc_simulation : dc_simulations) {
+        if (dc_print_requests.empty()) {
+            qDebug() << "No dc output requests!";
+            break;
+        }
+
+        std::string iter_name = dc_simulation->getIterName();
+        std::vector<double> iter_values = dc_simulation->getIterValues();
+        std::vector<arma::vec> iter_results = dc_simulation->getIterResults();
+
+        // create xdata
+        ColumnData xdata = ColumnData{iter_name, iter_values};
+
+        // create print ydata
+        std::vector<ColumnData> ydata_print;
+        ydata_print = createOutputYData(dc_print_requests, iter_results);
+
+        // print
+        printOutputData(xdata, ydata_print, "dc", dc_sim_id);
+
+        if (dc_plot_requests.empty()) {
+            break;
+        }
+        // create plot ydata
+        std::vector<ColumnData> ydata_plot;
+        ydata_plot = createOutputYData(dc_plot_requests, iter_results);
+
+        // plot
+        plotOutputData(xdata, ydata_plot);
+
+        ++dc_sim_id;
+    }
+    // AC, TRAN 输出待实现
+}
+
+void Circuit::printOutputData(ColumnData& xdata,
+                              std::vector<ColumnData>& ydata,
+                              std::string sim_type,
+                              int sim_id) const {
+    if (xdata.values.size() != ydata[0].values.size()) {
+        qDebug() << "printOutputData() xdata and ydata size not match!";
+        return;
+    }
+
+    // print xdata, ydata and export to csv file
+    std::filesystem::path p(netlist.file_path);
+    p.replace_filename(p.stem().string() + "-" + sim_type +
+                       std::to_string(sim_id) + ".csv");
+    p.replace_extension(".csv");
+    std::string csv_file_path = p.string();
+    std::ofstream file(csv_file_path);
+
+    // 打印并写入 CSV 文件的头部
+    std::cout << xdata.name;
+    file << xdata.name;
+    for (const auto& column : ydata) {
+        std::cout << "," << column.name;
+        file << "," << column.name;
+    }
+    std::cout << "\n";
+    file << "\n";
+
+    // 打印并写入数据
+    for (size_t i = 0; i < xdata.values.size(); ++i) {
+        std::cout << xdata.values[i];
+        file << xdata.values[i];
+        for (const auto& column : ydata) {
+            std::cout << "," << column.values[i];
+            file << "," << column.values[i];
+        }
+        std::cout << "\n";
+        file << "\n";
+    }
+
+    file.close();
+}
+
+void Circuit::plotOutputData(ColumnData& xdata,
+                             std::vector<ColumnData>& ydata) const {
+    if (xdata.values.size() != ydata[0].values.size()) {
+        qDebug() << "plotOutputData() xdata and ydata size not match!";
+        return;
+    }
+    // call qcustomplot
+    callPlot(xdata, ydata);
 }

@@ -266,6 +266,8 @@ void MainWindow::slotDebug() {
 
     circuit.runSimulations();
 
+    circuit.outputResults();
+
     /*
     circuit->printSize();
 

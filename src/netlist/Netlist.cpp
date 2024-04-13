@@ -100,7 +100,7 @@ Component* Netlist::getComponentPtr(const std::string& name) {
 }
 */
 
-Component* Netlist::getComponentPtr(const std::string& name) {
+Component* Netlist::getComponentPtr(const std::string& name) const {
     auto it = std::find_if(
         components.begin(), components.end(),
         [&name](Component* component) { return component->getName() == name; });
@@ -381,12 +381,12 @@ void Netlist::parseDC(int source_type,
     switch (source_type) {
         case (COMPONENT_VOLTAGE_SOURCE): {
             // qDebug() << "parseDC() source: " << source.c_str();
-            analysis->iter_name = "voltage(" + source + ")";
+            analysis->iter_name = "voltage(" + source + ") / V";
             break;
         }
         case (COMPONENT_CURRENT_SOURCE): {
             // qDebug() << "parseDC() source: " << source.c_str();
-            analysis->iter_name = "current(" + source + ")";
+            analysis->iter_name = "current(" + source + ") / A";
             break;
         }
         default:
@@ -403,7 +403,7 @@ void Netlist::parseAC(int ac_type,
     Analysis* analysis = new Analysis();
 
     analysis->analysis_type = ANALYSIS_AC;
-    analysis->iter_name = "frequency";
+    analysis->iter_name = "frequency / Hz";
 
     // qDebug() << "parseAC() ac_type: " << ac_type;
 
@@ -450,7 +450,7 @@ void Netlist::parseTran(double step, double stop_time, double start_time) {
     Analysis* analysis = new Analysis();
 
     analysis->analysis_type = ANALYSIS_TRAN;
-    analysis->iter_name = "time";
+    analysis->iter_name = "time / s";
     analysis->step = step;
 
     for (double time = start_time; time <= stop_time; time += step) {
@@ -464,6 +464,7 @@ void Netlist::parsePrint(int analysis_type,
     output->output_type = ANALYSIS_PRINT;
     output->analysis_type = analysis_type;
     output->var_list = var_list;
+    outputs.push_back(output);
 }
 
 void Netlist::parsePlot(int analysis_type,
@@ -472,4 +473,5 @@ void Netlist::parsePlot(int analysis_type,
     output->output_type = ANALYSIS_PLOT;
     output->analysis_type = analysis_type;
     output->var_list = var_list;
+    outputs.push_back(output);
 }
