@@ -456,6 +456,8 @@ void Netlist::parseTran(double step, double stop_time, double start_time) {
     for (double time = start_time; time <= stop_time; time += step) {
         analysis->iter_values.push_back(time);  // 保存仿真时间点
     }
+
+    analyses.push_back(analysis);
 }
 
 void Netlist::parsePrint(int analysis_type,

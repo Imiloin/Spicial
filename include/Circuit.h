@@ -28,6 +28,10 @@ class Circuit {
     void printNodes();
     void printBranches();
 
+    void generateMNATemplate();
+
+    void printMNATemplate();  // (DEBUG) print MNA and RHS templates
+
     Component* getComponentPtr(const std::string& name);
 
     Model* getModelPtr(const std::string& name);
@@ -48,9 +52,6 @@ class Circuit {
     void plotOutputData(ColumnData& xdata,
                         std::vector<ColumnData>& ydata) const;
 
-    // 其他方法...
-    // void printResults() const;
-
    private:
     Netlist& netlist;
 
@@ -58,18 +59,22 @@ class Circuit {
     Nodes nodes;
     Branches branches;  // use component name as branch name
 
+    // MNA and RHS templates
+    arma::sp_mat* MNA_T;
+    arma::vec* RHS_T;
+
     // Simulation lists
     std::list<DCSimulation*> dc_simulations;
-    // std::list<ACSimulation*> ac_simulations;
-    // std::list<TranSimulation*> tran_simulations;
+    std::list<ACSimulation*> ac_simulations;
+    std::list<TranSimulation*> tran_simulations;
 
     // Output requests
     std::vector<Variable> dc_print_requests;
     std::vector<Variable> dc_plot_requests;  // 所有的 plot 也会顺便 print
-    // std::vector<Variable> ac_print_requests;
-    // std::vector<Variable> ac_plot_requests;
-    // std::vector<Variable> tran_print_requests;
-    // std::vector<Variable> tran_plot_requests;
+    std::vector<Variable> ac_print_requests;
+    std::vector<Variable> ac_plot_requests;
+    std::vector<Variable> tran_print_requests;
+    std::vector<Variable> tran_plot_requests;
 };
 
 #endif  // SPICIAL_CIRCUIT_H

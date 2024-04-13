@@ -6,19 +6,20 @@
 #include "Branches.h"
 #include "Netlist.h"
 #include "Nodes.h"
+#include "function.h"
 #include "structs.h"
 
-class Simulation {
+class Simulation {  // 静态工作点的基类
    public:
     Simulation(Analysis& analysis_,
                Netlist& netlist_,
                Nodes& nodes_,
-               Branches& branches_);
+               Branches& branches_,
+               const arma::sp_mat* MNA_T_ = nullptr,
+               const arma::vec* RHS_T_ = nullptr);
     virtual ~Simulation();
 
-    void generateMNA();  // generate MNA and RHS templates
-
-    virtual void runSimulation() = 0;
+    virtual void runSimulation();  // run op simulation
 
     std::string getIterName() { return analysis.iter_name; }
     const std::vector<double>& getIterValues() const {
@@ -32,8 +33,8 @@ class Simulation {
     const Branches& branches;
 
     // MNA and RHS templates
-    static arma::sp_mat* MNA_T;
-    static arma::vec* RHS_T;
+    static const arma::sp_mat* MNA_T;
+    static const arma::vec* RHS_T;
 };
 
 class DCSimulation : public Simulation {
@@ -50,6 +51,50 @@ class DCSimulation : public Simulation {
    private:
     arma::sp_mat* MNA_DC_T;
     arma::vec* RHS_DC_T;
+
+    std::vector<arma::vec> iter_results;  // exclude gnd!!!
+};
+
+class ACSimulation : public Simulation {
+   public:
+    ACSimulation(Analysis& analysis_,
+                 Netlist& netlist_,
+                 Nodes& nodes_,
+                 Branches& branches_);
+
+    void runSimulation() override;
+
+    const std::vector<arma::cx_vec>& getIterResults();
+
+   private:
+    arma::sp_cx_mat* MNA_AC_T;
+    arma::cx_vec* RHS_AC_T;
+
+    std::vector<arma::cx_vec> iter_cresults;  // exclude gnd!!!
+};
+
+class TranSimulation : public Simulation {
+   public:
+    TranSimulation(Analysis& analysis_,
+                   Netlist& netlist_,
+                   Nodes& nodes_,
+                   Branches& branches_);
+
+    arma::vec tranBackEuler(double time,
+                            double h,
+                            const arma::vec x_prev);
+
+    void runSimulation() override;
+
+    const std::vector<arma::vec>& getIterResults();
+
+   private:
+    arma::sp_mat* MNA_TRAN_T;
+    arma::vec* RHS_TRAN_T;
+
+    double tstart;
+    double tstep;
+    double tstop;
 
     std::vector<arma::vec> iter_results;  // exclude gnd!!!
 };

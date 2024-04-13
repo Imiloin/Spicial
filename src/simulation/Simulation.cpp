@@ -1,195 +1,34 @@
 #include "Simulation.h"
 #include <QDebug>
 
-arma::sp_mat* Simulation::MNA_T = nullptr;
-arma::vec* Simulation::RHS_T = nullptr;
+const arma::sp_mat* Simulation::MNA_T = nullptr;
+const arma::vec* Simulation::RHS_T = nullptr;
 
 Simulation::Simulation(Analysis& analysis_,
                        Netlist& netlist_,
                        Nodes& nodes_,
-                       Branches& branches_)
+                       Branches& branches_,
+                       const arma::sp_mat* MNA_T_,
+                       const arma::vec* RHS_T_)
     : analysis(analysis_),
       netlist(netlist_),
       nodes(nodes_),
       branches(branches_) {
-    if (MNA_T == nullptr || RHS_T == nullptr) {
-        this->generateMNA();
+    if (MNA_T_ != nullptr && RHS_T_ != nullptr) {
+        MNA_T = MNA_T_;
+        RHS_T = RHS_T_;
     }
 }
 
 Simulation::~Simulation() {}
 
-void Simulation::generateMNA() {
-    // 生成 MNA, RHS 模板
-    int node_num = nodes.getNodeNum();
-    // qDebug() << "generateDCMNA() node_num: " << node_num;
-    int branch_num = branches.getBranchNum();
-    // qDebug() << "generateDCMNA() branch_num: " << branch_num;
-    int matrix_size = node_num + branch_num;
-    arma::sp_mat* MNA =
-        new arma::sp_mat(matrix_size, matrix_size);  // create sparse MNA
-    arma::vec* RHS =
-        new arma::vec(arma::zeros<arma::vec>(matrix_size));  // create RHS
-    // qDebug() << "generateDCMNA() matrix_size: " << matrix_size;
-    for (Component* component : netlist.components) {
-        switch (component->getType()) {
-            case COMPONENT_RESISTOR: {
-                Resistor* resistor = dynamic_cast<Resistor*>(component);
-                int id_nplus = resistor->getIdNplus();
-                int id_nminus = resistor->getIdNminus();
-                double resistance = resistor->getResistance();
-
-                (*MNA)(id_nplus, id_nplus) += 1 / resistance;
-                (*MNA)(id_nminus, id_nminus) += 1 / resistance;
-                (*MNA)(id_nplus, id_nminus) -= 1 / resistance;
-                (*MNA)(id_nminus, id_nplus) -= 1 / resistance;
-                break;
-            }
-            case COMPONENT_CAPACITOR: {
-                Capacitor* capacitor = dynamic_cast<Capacitor*>(component);
-                int id_nplus = capacitor->getIdNplus();
-                int id_nminus = capacitor->getIdNminus();
-                int id_branch = capacitor->getIdBranch();
-                double capacitance = capacitor->getCapacitance();
-
-                (*MNA)(id_nplus, id_nplus) += 0 * capacitance;
-                (*MNA)(id_nminus, id_nminus) += 0 * capacitance;
-                (*MNA)(id_nplus, id_nminus) -= 0 * capacitance;
-                (*MNA)(id_nminus, id_nplus) -= 0 * capacitance;
-                (*MNA)(id_branch, id_nplus) = 0 * capacitance;
-                (*MNA)(id_branch, id_nminus) = -0 * capacitance;
-                (*MNA)(id_branch, id_branch) = -1;
-                break;
-            }
-            case COMPONENT_INDUCTOR: {
-                Inductor* inductor = dynamic_cast<Inductor*>(component);
-                int id_nplus = inductor->getIdNplus();
-                int id_nminus = inductor->getIdNminus();
-                int id_branch = inductor->getIdBranch();
-                // double inductance = inductor->getInductance();
-
-                (*MNA)(id_nplus, id_branch) = 1;
-                (*MNA)(id_nminus, id_branch) = -1;
-                (*MNA)(id_branch, id_nplus) = 1;
-                (*MNA)(id_branch, id_nminus) = -1;
-                break;
-            }
-            case COMPONENT_VCVS: {
-                VCVS* vcvs = dynamic_cast<VCVS*>(component);
-                int id_nplus = vcvs->getIdNplus();
-                int id_nminus = vcvs->getIdNminus();
-                int id_ncplus = vcvs->getIdNCplus();
-                int id_ncminus = vcvs->getIdNCminus();
-                int id_branch = vcvs->getIdBranch();
-                double gain = vcvs->getGain();
-
-                (*MNA)(id_nplus, id_branch) = 1;
-                (*MNA)(id_nminus, id_branch) = -1;
-                (*MNA)(id_branch, id_nplus) = 1;
-                (*MNA)(id_branch, id_nminus) = -1;
-                (*MNA)(id_branch, id_ncplus) = -gain;
-                (*MNA)(id_branch, id_ncminus) = gain;
-                break;
-            }
-            case COMPONENT_CCCS: {
-                CCCS* cccs = dynamic_cast<CCCS*>(component);
-                int id_nplus = cccs->getIdNplus();
-                int id_nminus = cccs->getIdNminus();
-                int id_vsource =
-                    branches.getBranchIndex(cccs->getName()) + node_num;
-                double gain = cccs->getGain();
-
-                (*MNA)(id_nplus, id_vsource) += gain;
-                (*MNA)(id_nminus, id_vsource) -= gain;
-                break;
-            }
-            case COMPONENT_VCCS: {
-                VCCS* vccs = dynamic_cast<VCCS*>(component);
-                int id_nplus = vccs->getIdNplus();
-                int id_nminus = vccs->getIdNminus();
-                int id_ncplus = vccs->getIdNCplus();
-                int id_ncminus = vccs->getIdNCminus();
-                double gain = vccs->getGain();
-
-                (*MNA)(id_nplus, id_ncplus) += gain;
-                (*MNA)(id_nplus, id_ncminus) -= gain;
-                (*MNA)(id_nminus, id_ncplus) -= gain;
-                (*MNA)(id_nminus, id_ncminus) += gain;
-                break;
-            }
-            case COMPONENT_CCVS: {
-                CCVS* ccvs = dynamic_cast<CCVS*>(component);
-                int id_nplus = ccvs->getIdNplus();
-                int id_nminus = ccvs->getIdNminus();
-                int id_branch = ccvs->getIdBranch();
-                double gain = ccvs->getGain();
-                int id_vsource =
-                    branches.getBranchIndex(ccvs->getVsource()) + node_num;
-
-                (*MNA)(id_branch, id_nplus) = 1;
-                (*MNA)(id_branch, id_nminus) = -1;
-                (*MNA)(id_nplus, id_branch) = 1;
-                (*MNA)(id_nminus, id_branch) = -1;
-                (*MNA)(id_branch, id_vsource) = -gain;
-                break;
-            }
-            case COMPONENT_VOLTAGE_SOURCE: {
-                VoltageSource* voltage_source =
-                    dynamic_cast<VoltageSource*>(component);
-                int id_nplus = voltage_source->getIdNplus();
-                int id_nminus = voltage_source->getIdNminus();
-                int id_branch = voltage_source->getIdBranch();
-                double dc_voltage = voltage_source->getDCVoltage();
-
-                (*MNA)(id_nplus, id_branch) = 1;
-                (*MNA)(id_nminus, id_branch) = -1;
-                (*MNA)(id_branch, id_nplus) = 1;
-                (*MNA)(id_branch, id_nminus) = -1;
-                (*RHS)(id_branch) = dc_voltage;
-                break;
-            }
-            case COMPONENT_CURRENT_SOURCE: {
-                CurrentSource* current_source =
-                    dynamic_cast<CurrentSource*>(component);
-                int id_nplus = current_source->getIdNplus();
-                int id_nminus = current_source->getIdNminus();
-                double dc_current = current_source->getDCCurrent();
-
-                (*RHS)(id_nplus) = -dc_current;
-                (*RHS)(id_nminus) = dc_current;
-                break;
-            }
-            case COMPONENT_DIODE: {
-                Diode* diode = dynamic_cast<Diode*>(component);
-                int id_nplus = diode->getIdNplus();
-                int id_nminus = diode->getIdNminus();
-                DiodeModel* model = diode->getModel();
-
-                double v0 = 0;  // 从0V开始迭代
-                double i0 = model->calcCurrentAtVoltage(v0);
-                double g0 = model->calcConductanceAtVoltage(v0);
-                double j0 = i0 - g0 * v0;
-
-                (*MNA)(id_nplus, id_nplus) += g0;
-                (*MNA)(id_nminus, id_nminus) += g0;
-                (*MNA)(id_nplus, id_nminus) -= g0;
-                (*MNA)(id_nminus, id_nplus) -= g0;
-                (*RHS)(id_nplus) -= j0;
-                (*RHS)(id_nminus) += j0;
-                break;
-            }
-            default: {
-                qDebug() << "generateMNA() Unknown component type:"
-                         << component->getType();
-                break;
-            }
-        }
+void Simulation::runSimulation() {
+    // do nothing
+    if (MNA_T == nullptr || RHS_T == nullptr) {
+        qDebug() << "MNA_T or RHS_T is nullptr.";
+        return;
     }
-    /** 保存 MNA 模板 */
-    // 未考虑 analysis 语句的模板，若为静态工作点分析，求解该方程即可
-    MNA_T = MNA;
-    RHS_T = RHS;
-    // arma::vec x = arma::spsolve(MNA, RHS);
+    return;
 }
 
 DCSimulation::DCSimulation(Analysis& analysis_,
@@ -197,18 +36,24 @@ DCSimulation::DCSimulation(Analysis& analysis_,
                            Nodes& nodes_,
                            Branches& branches_)
     : Simulation(analysis_, netlist_, nodes_, branches_) {
-    MNA_DC_T = MNA_T;
-    RHS_DC_T = RHS_T;
+    MNA_DC_T = new arma::sp_mat(*MNA_T);
+    RHS_DC_T = new arma::vec(*RHS_T);
 }
 
 void DCSimulation::runSimulation() {
+    if (MNA_DC_T == nullptr || RHS_DC_T == nullptr) {
+        qDebug() << "MNA_DC_T or RHS_DC_T is nullptr.";
+        return;
+    }
+
     int source_type = analysis.source_type;
     std::string source = analysis.source_name;
 
-    qDebug() << "DCSimulation() source_type: " << source_type;
+    qDebug() << "DCSimulation::runSimulation() source_type: " << source_type;
     switch (source_type) {
         case (COMPONENT_VOLTAGE_SOURCE): {
-            qDebug() << "DCSimulation() source: " << source.c_str();
+            qDebug() << "DCSimulation::runSimulation() source: "
+                     << source.c_str();
             int id_vsrc =
                 dynamic_cast<VoltageSource*>(netlist.getComponentPtr(source))
                     ->getIdBranch();
@@ -240,9 +85,10 @@ void DCSimulation::runSimulation() {
                 bool status = arma::spsolve(x, MNA_DC, RHS_DC);
                 // printf("status: %d\n", status);
                 if (!status) {
-                    qDebug() << "DCSimulation() solve failed.";
+                    qDebug() << "DCSimulation::runSimulation() solve failed.";
                 } else {
-                    // x.print("DCSimulation() x:");  /////////////////////
+                    // x.print("DCSimulation::runSimulation() x:");
+                    // /////////////////////
                 }
                 iter_results.push_back(x);
             }
@@ -252,7 +98,8 @@ void DCSimulation::runSimulation() {
             qDebug() << "DCSimulation() source: " << source.c_str();
             Component* current_source = netlist.getComponentPtr(source);
             if (current_source == nullptr) {
-                qDebug() << "DCSimulation() current source not found.";
+                qDebug() << "DCSimulation::runSimulation() current source not "
+                            "found.";
                 return;
             }
             int id_nplus =
@@ -290,22 +137,352 @@ void DCSimulation::runSimulation() {
                 bool status = arma::spsolve(x, MNA_DC, RHS_DC);
                 // printf("status: %d\n", status);
                 if (!status) {
-                    qDebug() << "DCSimulation() solve failed.";
+                    qDebug() << "DCSimulation::runSimulation() solve failed.";
                 } else {
-                    // x.print("DCSimulation() x:");  /////////////////////
+                    // x.print("DCSimulation::runSimulation() x:");
+                    // /////////////////////
                 }
                 iter_results.push_back(x);
             }
             break;
         }
         default:
+            qDebug() << "DCSimulation::runSimulation() Unknown source type.";
             break;
     }
 }
 
 const std::vector<arma::vec>& DCSimulation::getIterResults() {
     if (iter_results.empty()) {
-        qDebug() << "DCSimulation() iter_results is empty.";
+        qDebug() << "DCSimulation::getIterResults() iter_results is empty.";
+    }
+    return iter_results;
+}
+
+ACSimulation::ACSimulation(Analysis& analysis_,
+                           Netlist& netlist_,
+                           Nodes& nodes_,
+                           Branches& branches_)
+    : Simulation(analysis_, netlist_, nodes_, branches_) {
+    std::complex<double> j(0, 1);
+    // 生成 AC 状态 MNA，复制 base MNA，将虚部置零
+    arma::sp_mat MNA_zerofill = arma::sp_mat(size((*MNA_T)));
+    MNA_AC_T = new arma::sp_cx_mat((*MNA_T), MNA_zerofill);
+    arma::vec RHS_zerofill = arma::vec(size((*RHS_T)), arma::fill::zeros);
+    RHS_AC_T = new arma::cx_vec((*RHS_T), RHS_zerofill);
+
+    // 生成 AC 状态 MNA 模板
+    for (VoltageSource* voltage_source : netlist.voltage_sources) {
+        double ac_magnitude = voltage_source->getACMagnitude();
+        double ac_phase = voltage_source->getACPhase() / 180 * M_PI;
+        int id_branch = voltage_source->getIdBranch();
+
+        (*RHS_AC_T)(id_branch) = ac_magnitude * exp(j * ac_phase);
+    }
+    for (CurrentSource* current_source : netlist.current_sources) {
+        int id_nplus = current_source->getIdNplus();
+        int id_nminus = current_source->getIdNminus();
+        double ac_magnitude = current_source->getACMagnitude();
+        double ac_phase = current_source->getACPhase() / 180 * M_PI;
+
+        (*RHS_AC_T)(id_nplus) = -ac_magnitude * exp(j * ac_phase);
+        (*RHS_AC_T)(id_nminus) = ac_magnitude * exp(j * ac_phase);
+    }
+}
+
+void ACSimulation::runSimulation() {
+    if (MNA_AC_T == nullptr || RHS_AC_T == nullptr) {
+        qDebug() << "MNA_AC_T or RHS_AC_T is nullptr.";
+        return;
+    }
+
+    std::complex<double> j(0, 1);
+    qDebug() << "ACSimulation::runSimulation()";
+
+    // 运行 AC 分析
+    for (double freq : analysis.iter_values) {
+        arma::sp_cx_mat MNA_AC = *MNA_AC_T;
+        arma::cx_vec RHS_AC = *RHS_AC_T;
+
+        for (Capacitor* capacitor : netlist.capacitors) {
+            int id_nplus = capacitor->getIdNplus();
+            int id_nminus = capacitor->getIdNminus();
+            double capacitance = capacitor->getCapacitance();
+
+            MNA_AC(id_nplus, id_nplus) += 2 * M_PI * freq * capacitance * j;
+            MNA_AC(id_nminus, id_nminus) += 2 * M_PI * freq * capacitance * j;
+            MNA_AC(id_nplus, id_nminus) -= 2 * M_PI * freq * capacitance * j;
+            MNA_AC(id_nminus, id_nplus) -= 2 * M_PI * freq * capacitance * j;
+        }
+        for (Inductor* inductor : netlist.inductors) {
+            double inductance = inductor->getInductance();
+            int id_branch = inductor->getIdBranch();
+
+            MNA_AC(id_branch, id_branch) -= 2 * M_PI * freq * inductance * j;
+        }
+
+        // exclude ground node
+        MNA_AC.shed_row(0);
+        MNA_AC.shed_col(0);
+        RHS_AC.shed_row(0);
+
+        // check if the matrix is singular
+        /*
+        arma::cx_mat MNA_AC_dense =
+            arma::conv_to<arma::cx_mat>::from(MNA_AC);
+        if (std::abs(arma::det(MNA_AC_dense)) < 1e-5) {
+            qDebug() << "The matrix MNA_AC is singular.";
+            continue;
+        }
+        */
+
+        // qDebug() << "AC Simulation at frequency: " << freq;
+        // MNA_AC.print("MNA_AC");
+        // RHS_AC.print("RHS_AC");
+
+        arma::cx_vec x;
+        bool status = arma::spsolve(x, MNA_AC, RHS_AC);
+        // printf("status: %d\n", status);
+        if (!status) {
+            qDebug() << "ACSimulation::runSimulation() solve failed.";
+        } else {
+            // x.print("ACSimulation::runSimulation() x:");
+        }
+        iter_cresults.push_back(x);
+    }
+}
+
+const std::vector<arma::cx_vec>& ACSimulation::getIterResults() {
+    if (iter_cresults.empty()) {
+        qDebug() << "ACSimulation::getIterCResults() iter_cresults is empty.";
+    }
+    return iter_cresults;
+}
+
+TranSimulation::TranSimulation(Analysis& analysis_,
+                               Netlist& netlist_,
+                               Nodes& nodes_,
+                               Branches& branches_)
+    : Simulation(analysis_, netlist_, nodes_, branches_) {
+    tstart = 0;
+    tstep = analysis.step;
+    tstop = 0;
+    if (!analysis.iter_values.empty()) {
+        tstart = analysis.iter_values.front();
+        tstop = analysis.iter_values.back();
+    }
+
+    // 生成 Tran 状态 MNA，复制 base MNA
+    MNA_TRAN_T = new arma::sp_mat(*MNA_T);
+    RHS_TRAN_T = new arma::vec(*RHS_T);
+
+    // 生成 Tran 状态 MNA 模板
+    // 为 Capacitor 的 branch 进行调整
+    for (Capacitor* capacitor : netlist.capacitors) {
+        int id_nplus = capacitor->getIdNplus();
+        int id_nminus = capacitor->getIdNminus();
+        int id_branch = capacitor->getIdBranch();
+
+        (*MNA_TRAN_T)(id_nplus, id_branch) = 1;
+        (*MNA_TRAN_T)(id_nminus, id_branch) = -1;
+        // (*MNA_TRAN_T)(id_branch, id_branch) = -1;
+    }
+}
+
+arma::vec TranSimulation::tranBackEuler(double time,
+                                        double h,
+                                        const arma::vec x_prev) {
+    // int node_num = nodes.getNodeNum();
+    arma::sp_mat MNA_TRAN = *MNA_TRAN_T;
+    arma::vec RHS_TRAN = *RHS_TRAN_T;
+    arma::vec x_prev_gnd = x_prev;
+    x_prev_gnd.insert_rows(0, arma::zeros(1));  // insert ground node
+
+    for (Capacitor* capacitor : netlist.capacitors) {
+        int id_nplus = capacitor->getIdNplus();
+        int id_nminus = capacitor->getIdNminus();
+        double capacitance = capacitor->getCapacitance();
+        int id_branch = capacitor->getIdBranch();
+
+        MNA_TRAN(id_branch, id_nplus) = capacitance / h;
+        MNA_TRAN(id_branch, id_nminus) = -capacitance / h;
+        RHS_TRAN(id_branch) =
+            capacitance / h * (x_prev_gnd(id_nplus) - x_prev_gnd(id_nminus));
+    }
+
+    for (Inductor* inductor : netlist.inductors) {
+        double inductance = inductor->getInductance();
+        int id_branch = inductor->getIdBranch();
+
+        MNA_TRAN(id_branch, id_branch) = -inductance / h;
+        RHS_TRAN(id_branch) = -inductance / h * x_prev_gnd(id_branch);
+    }
+
+    for (VoltageSource* voltage_source : netlist.voltage_sources) {
+        if (voltage_source->getFunction() == nullptr) {
+            continue;  // 没有 function，直接使用 DC 电压，已在 MNA_TRAN_T
+                       // 中存在
+        }
+        int id_branch = voltage_source->getIdBranch();
+
+        RHS_TRAN(id_branch) = calcFunctionAtTime(voltage_source->getFunction(),
+                                                 time, tstep, tstop);
+    }
+
+    for (CurrentSource* current_source : netlist.current_sources) {
+        if (current_source->getFunction() == nullptr) {
+            continue;  // 没有 function，直接使用 DC 电流，已在 MNA_TRAN_T
+                       // 中存在
+        }
+        int id_nplus = current_source->getIdNplus();
+        int id_nminus = current_source->getIdNminus();
+        double current_time = calcFunctionAtTime(current_source->getFunction(),
+                                                 time, tstep, tstop);
+
+        RHS_TRAN(id_nplus) = -current_time;
+        RHS_TRAN(id_nminus) = current_time;
+    }
+
+    // exclude ground node
+    MNA_TRAN.shed_row(0);
+    MNA_TRAN.shed_col(0);
+    RHS_TRAN.shed_row(0);
+    // check if the matrix is singular
+    if (arma::det(arma::mat(MNA_TRAN)) == 0) {
+        qDebug() << "The matrix is singular after shedding the first "
+                    "row and column, cannot solve the system.";
+        MNA_TRAN.print("MNA_TRAN");
+        RHS_TRAN.print("RHS_TRAN");
+    }
+
+    arma::vec x;
+    bool status = arma::spsolve(x, MNA_TRAN, RHS_TRAN);
+    // printf("status: %d\n", status);
+    if (!status) {
+        qDebug() << "TranSimulation() solve failed.";
+        return x_prev;
+    } else {
+        return x;
+    }
+}
+
+void TranSimulation::runSimulation() {
+    qDebug() << "TranSimulation::runSimulation()";
+    double h = analysis.step;  // 为简化处理，使用恒定步长
+    double time = 0;  // 当前时间点
+    arma::vec x;      // 保存当前时间点的解
+
+    if (MNA_TRAN_T == nullptr || RHS_TRAN_T == nullptr) {
+        qDebug() << "generateTranMNA() failed.";
+    }
+
+    // 先根据初始条件解出第一组解（t = 0） //
+    // qDebug() << "Creating MNA_TRAN_0 and RHS_TRAN_0";
+    arma::sp_mat* MNA_TRAN_0 = new arma::sp_mat(*MNA_TRAN_T);
+    arma::vec* RHS_TRAN_0 = new arma::vec(*RHS_TRAN_T);
+
+    for (Capacitor* capacitor : netlist.capacitors) {
+        int id_nplus = capacitor->getIdNplus();
+        int id_nminus = capacitor->getIdNminus();
+        double initial_voltage = capacitor->getInitialVoltage();
+        int id_branch = capacitor->getIdBranch();
+
+        (*MNA_TRAN_0)(id_nplus, id_branch) = 1;
+        (*MNA_TRAN_0)(id_nminus, id_branch) = -1;
+        (*MNA_TRAN_0)(id_branch, id_nplus) = 1;
+        (*MNA_TRAN_0)(id_branch, id_nminus) = -1;
+        (*MNA_TRAN_0)(id_branch, id_branch) = 0;
+        (*RHS_TRAN_0)(id_branch) = initial_voltage;
+    }
+    for (Inductor* inductor : netlist.inductors) {
+        int id_nplus = inductor->getIdNplus();
+        int id_nminus = inductor->getIdNminus();
+        double initial_current = inductor->getInitialCurrent();
+        int id_branch = inductor->getIdBranch();
+
+        (*MNA_TRAN_0)(id_branch, id_nplus) = 0;
+        (*MNA_TRAN_0)(id_branch, id_nminus) = 0;
+        (*MNA_TRAN_0)(id_branch, id_branch) = 1;
+        (*RHS_TRAN_0)(id_branch) = initial_current;
+    }
+    for (VoltageSource* voltage_source : netlist.voltage_sources) {
+        if (voltage_source->getFunction() == nullptr) {
+            continue;  // 没有 function，直接使用 DC 电压，已在 MNA_TRAN_T
+                       // 中存在
+        }
+        int id_branch = voltage_source->getIdBranch();
+
+        (*RHS_TRAN_0)(id_branch) =
+            calcFunctionAtTime(voltage_source->getFunction(), 0, h, tstop);
+    }
+    for (CurrentSource* current_source : netlist.current_sources) {
+        if (current_source->getFunction() == nullptr) {
+            continue;  // 没有 function，直接使用 DC 电流，已在 MNA_TRAN_T
+                       // 中存在
+        }
+        int id_nplus = current_source->getIdNplus();
+        int id_nminus = current_source->getIdNminus();
+        double current_0 =
+            calcFunctionAtTime(current_source->getFunction(), 0, h, tstop);
+
+        (*RHS_TRAN_0)(id_nplus) = -current_0;
+        (*RHS_TRAN_0)(id_nminus) = current_0;
+    }
+
+    // exclude ground node
+    (*MNA_TRAN_0).shed_row(0);
+    (*MNA_TRAN_0).shed_col(0);
+    (*RHS_TRAN_0).shed_row(0);
+    // check if the matrix is singular
+    if (arma::det(arma::mat(*MNA_TRAN_0)) == 0) {
+        qDebug() << "The matrix is singular after shedding the first "
+                    "row and column, cannot solve the system.";
+        (*MNA_TRAN_0).print("MNA_TRAN");
+        (*RHS_TRAN_0).print("RHS_TRAN");
+    }
+
+    bool status = arma::spsolve(x, *MNA_TRAN_0, *RHS_TRAN_0);
+    // printf("status: %d\n", status);
+    if (!status) {
+        qDebug() << "TranSimulation() solve failed.";
+    } else {
+        // x.print("TranSimulation() t=0 x:");
+    }
+    if (tstart == 0) {
+        iter_results.push_back(x);    // time = 0 的解
+    }
+
+    delete MNA_TRAN_0;
+    delete RHS_TRAN_0;
+    // 第一组解求解完毕 //
+
+    // arma::sp_mat* MNA_TRAN = new arma::sp_mat(*MNA_TRAN_T);
+    // arma::vec* RHS_TRAN = new arma::vec(*RHS_TRAN_T);
+    // 求解 (0, tstart) 之间的解，不含两边 //
+    for (time = h; time < tstart; time += h) {
+        x = tranBackEuler(time, h, x);
+    }
+    time -= h;  // 回退到 tstart 前一个时间点
+    // 求解 [time, tstart] 的解 //
+    if (time < tstart) {
+        double h_last = tstart - time;
+        time = tstart;
+        x = tranBackEuler(tstart, h_last, x);
+        iter_results.push_back(x);    // tstart 的解
+    }
+    // 求解 (tstart, tstop] 的解 //
+    // std::cout << (time < tstop) << std::endl;
+    for (time += h; time <= tstop; time += tstep) {
+        x = tranBackEuler(time, h, x);
+        iter_results.push_back(x);    // time 的解
+        // std::cout << "time: " << time << "\t";
+        // x.print("TranSimulation() x:");
+    }
+}
+
+const std::vector<arma::vec>& TranSimulation::getIterResults() {
+    if (iter_results.empty()) {
+        qDebug() << "TranSimulation::getIterResults() iter_results is empty.";
     }
     return iter_results;
 }
