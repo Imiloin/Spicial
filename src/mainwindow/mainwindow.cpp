@@ -238,6 +238,12 @@ void MainWindow::slotSimulate() {
         return;
     }
 
+    Circuit circuit(*netlist);
+
+    circuit.runSimulations();
+
+    circuit.outputResults();
+
     std::cout << "-------------------------------Simulation--------------------"
                  "-----------"
               << std::endl;
@@ -264,35 +270,15 @@ void MainWindow::slotDebug() {
 
     circuit.printBranches();
 
+    circuit.printModels();
+
+    circuit.printComponentSize();
+
     circuit.printMNATemplate();
 
     circuit.runSimulations();
 
-    circuit.outputResults();
-
-    /*
-    circuit->printSize();
-
-    circuit->printNodes();
-
-    circuit->printBranches();
-
-    circuit->printModels();
-
-    // circuit->generateDCMNA();  //
-
-    circuit->printMNADCTemplate();
-
-    circuit->generateACMNA();  //
-
-    circuit->printMNAACTemplate();
-
-    circuit->generateTranMNA();  //
-
-    circuit->printMNATranTemplate();
-
-    circuit->printResults();
-    */
+    circuit.outputResults();  
 
     std::cout << "********************************DEBUG************************"
                  "*********"

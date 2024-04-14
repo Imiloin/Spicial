@@ -336,31 +336,20 @@ void Circuit::printMNATemplate() {
     std::cout << "-------------------------------" << std::endl;
 }
 
-// already defined in Netlist class
 Component* Circuit::getComponentPtr(const std::string& name) {
-    auto it = std::find_if(
-        netlist.components.begin(), netlist.components.end(),
-        [&name](Component* component) { return component->getName() == name; });
-    if (it == netlist.components.end()) {
-        qDebug() << "getComponentPtr(" << name.c_str() << ")"
-                 << "Component not found";
-        return nullptr;
-    }
-    return *it;
+    return netlist.getComponentPtr(name);
 }
 
-// already defined in Netlist class
+void Circuit::printComponentSize() const {
+    netlist.printComponentSize();
+}
+
 Model* Circuit::getModelPtr(const std::string& name) {
-    // std::vector<Model*>& models;
-    auto it = std::find_if(
-        netlist.models.begin(), netlist.models.end(),
-        [&name](Model* model) { return model->getName() == name; });
-    if (it == netlist.models.end()) {
-        qDebug() << "getModelPtr(" << name.c_str() << ")";
-        printf("Model not found\n");
-        return nullptr;
-    }
-    return *it;
+    return netlist.getModelPtr(name);
+}
+
+void Circuit::printModels() const {
+    netlist.printModels();
 }
 
 void Circuit::runSimulations() {

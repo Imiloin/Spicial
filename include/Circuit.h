@@ -34,7 +34,11 @@ class Circuit {
 
     Component* getComponentPtr(const std::string& name);
 
+    void printComponentSize() const;
+
     Model* getModelPtr(const std::string& name);
+
+    void printModels() const;
 
     void runSimulations();
 

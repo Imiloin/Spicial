@@ -20,7 +20,7 @@ Simulation::Simulation(Analysis& analysis_,
     }
     // 应当从 netlist 中获取默认参数
     // 这里暂时使用默认参数
-    rel_tol = 1e-6;
+    rel_tol = 1e-3;
     abs_tol = 5e-5;
     max_iter = 100;
 }
@@ -104,14 +104,21 @@ arma::vec Simulation::solveOneOP(arma::sp_mat& MNA,
             // x.print("solveOneOP() x:");
             // 检查是否收敛
             arma::vec err = arma::abs(x - x_previter);
-            bool status_abs = all(err < abs_tol);
-            bool status_rel = all(err < rel_tol * arma::abs(x_previter));
+            bool status_abs = all(err <= abs_tol);
+            bool status_rel = all(err <= rel_tol * arma::abs(x_previter));
             if (status_abs && status_rel) {
                 // qDebug() << "solveOneOP() converged, iter: " << iter;
                 return x;
             }
+            // qDebug() << "status_abs: " << status_abs << " status_rel: " << status_rel;
         }
     }
+    /*
+    arma::vec err = arma::abs(x - x_previter);
+    arma::vec err_rel = rel_tol * arma::abs(x_previter);
+    err.print("err");
+    err_rel.print("err_rel");
+    */
     std::cout << "Warning: solveOneOP() max_iter reached, cannot converge."
               << std::endl;
     return x;

@@ -38,17 +38,6 @@ void Netlist::addModel(Model* model) {
     models.push_back(model);
 }
 
-/*
-Model* Netlist::getModelPtr(const std::string& name) {
-    for (Model* model : models) {
-        if (model->getName() == name) {
-            return model;
-        }
-    }
-    return nullptr;
-}
-*/
-
 Model* Netlist::getModelPtr(const std::string& name) {
     // std::vector<Model*>& models;
     auto it = std::find_if(models.begin(), models.end(), [&name](Model* model) {
@@ -65,12 +54,12 @@ Model* Netlist::getModelPtr(const std::string& name) {
 void Netlist::printModels() const {
     // print {model: name}
     std::cout << std::endl;
-    std::cout << "------------------- " << std::endl
+    std::cout << "-------------------------------" << std::endl
               << "Models: {name}" << std::endl;
     for (Model* model : models) {
         std::cout << "{" << model->getName() << "}" << std::endl;
     }
-    std::cout << "------------------- " << std::endl;
+    std::cout << "-------------------------------" << std::endl;
 }
 
 void Netlist::addComponent(Component* component) {
@@ -89,17 +78,6 @@ void Netlist::replaceComponent(const std::string& name,
     }
 }
 
-/*
-Component* Netlist::getComponentPtr(const std::string& name) {
-    for (Component* component : components) {
-        if (component->getName() == name) {
-            return component;
-        }
-    }
-    return nullptr;
-}
-*/
-
 Component* Netlist::getComponentPtr(const std::string& name) const {
     auto it = std::find_if(
         components.begin(), components.end(),
@@ -113,6 +91,7 @@ Component* Netlist::getComponentPtr(const std::string& name) const {
 }
 
 void Netlist::printComponentSize() const {
+    std::cout << "-------------------------------" << std::endl;
     std::cout << "Resistor: " << resistor_name_set.size() << std::endl;
     std::cout << "Capacitor: " << capacitor_name_set.size() << std::endl;
     std::cout << "Inductor: " << inductor_name_set.size() << std::endl;
@@ -125,6 +104,7 @@ void Netlist::printComponentSize() const {
     std::cout << "Current Source: " << currentsource_name_set.size()
               << std::endl;
     std::cout << "Diode: " << diode_name_set.size() << std::endl;
+    std::cout << "-------------------------------" << std::endl;
 }
 
 void Netlist::parseResistor(const std::string& name,
