@@ -1,12 +1,14 @@
 #include "Model.h"
 #include <QDebug>
 
+double Model::temperature = 300;  // default temperature
+
 // Constants
 const double Model::ELECTRON_CHARGE = 1.602176634e-19;  // Coulombs
 const double Model::BOLTZMANN_CONSTANT = 1.380649e-23;  // Joules per Kelvin
 
-Model::Model(const std::string& name, double temperature)
-    : name(name), temperature(temperature) {
+Model::Model(const std::string& name)
+    : name(name) {
     type = -1;
 }
 
@@ -18,6 +20,10 @@ int Model::getType() const {
 
 std::string Model::getName() const {
     return name;
+}
+
+void Model::setTemperature(double temp) {
+    Model::temperature = temp;
 }
 
 // **** Diode Model ****

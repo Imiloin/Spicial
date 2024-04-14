@@ -24,8 +24,8 @@ struct Analysis {
     int source_type;  // for DC
     std::string source_name;  // for DC
     double step;  // for TRAN
-    std::string iter_name;
-    std::vector<double> iter_values;
+    std::string sim_name;
+    std::vector<double> sim_values;
 };
 
 struct Output {

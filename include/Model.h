@@ -9,16 +9,17 @@ class Model {
    protected:
     int type;
     std::string name;
-    double temperature;
+    static double temperature;  // in Kelvin
 
    public:
     static const double ELECTRON_CHARGE;     // 元电荷
     static const double BOLTZMANN_CONSTANT;  // 玻尔兹曼常数
 
-    Model(const std::string& name, double temperature = 300);
+    Model(const std::string& name);
     virtual ~Model();
     int getType() const;
     std::string getName() const;
+    void setTemperature(double temp);
 };
 
 // Diode Model

@@ -21,16 +21,24 @@ class Simulation {  // 静态工作点的基类
 
     virtual void runSimulation();  // run op simulation
 
-    std::string getIterName() { return analysis.iter_name; }
+    std::string getSimName() { return analysis.sim_name; }
     const std::vector<double>& getIterValues() const {
-        return analysis.iter_values;
+        return analysis.sim_values;
     }
+
+    // 求解一个工作点
+    arma::vec solveOneOP(arma::sp_mat& MNA, arma::vec& RHS, arma::vec& x_prev);  // real
 
    protected:
     const Analysis& analysis;
     const Netlist& netlist;
     const Nodes& nodes;
     const Branches& branches;
+
+    // simulation parameters for non-linear solver
+    double rel_tol;  // relative tolerance, default 1e-3
+    double abs_tol;  // absolute tolerance, default 5e-5
+    int max_iter;    // maximum iteration number, default 100
 
     // MNA and RHS templates
     static const arma::sp_mat* MNA_T;
@@ -82,7 +90,7 @@ class TranSimulation : public Simulation {
 
     arma::vec tranBackEuler(double time,
                             double h,
-                            const arma::vec x_prev);
+                            const arma::vec x_prevtime);
 
     void runSimulation() override;
 

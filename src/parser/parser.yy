@@ -759,7 +759,6 @@ node: NODE
     {
         $$ = new char[strlen($1) + 1];
         strcpy($$, $1);
-        std::transform($$, $$ + strlen($1), $$, ::tolower);  // convert to lower case
         $$[strlen($1)] = '\0';
     }
 ;
@@ -768,7 +767,6 @@ modelname: MODELNAME
     {
         $$ = new char[strlen($1) + 1];
         strcpy($$, $1);
-        std::transform($$, $$ + strlen($1), $$, ::tolower);  // convert to lower case
         $$[strlen($1)] = '\0';
     }
 ;

@@ -51,9 +51,11 @@ char* first_token_of_current_line = NULL;
 int current_line_type = LINE_TYPE_COMMENT;
 int current_token_needed = 0;
 bool optional_token = false;
+bool uppercasing = false;
 %}
 
 %x NODES VALUES VARIABLES FUNCTIONS
+%x NODES_BRANCHES
 %x MODELNAMES
 %x KEYWORD_PARAM
 %x ANALYSIS_TYPE
@@ -318,9 +320,6 @@ END              [\.][Ee][Nn][Dd]
                 BEGIN(VALUES); current_token_needed = 1; break;
             case COMPONENT_DIODE:
                 BEGIN(MODELNAMES); current_token_needed = 1; break;
-            case ANALYSIS_PRINT:
-            case ANALYSIS_PLOT:
-                BEGIN(VARIABLES); current_token_needed = 1; break;
             default:
                 printf("Current line type is %d\n", current_line_type);
                 printf("ERROR_UNKOWN_LINE_TYPE when parsing NODES\n");
@@ -346,28 +345,12 @@ END              [\.][Ee][Nn][Dd]
                 BEGIN(VALUES); current_token_needed = 1; break;
             case COMPONENT_DIODE:
                 BEGIN(MODELNAMES); current_token_needed = 1; break;
-            case ANALYSIS_PRINT:
-            case ANALYSIS_PLOT:
-                BEGIN(VARIABLES); current_token_needed = 1; break;
             default:
                 printf("Current line type is %d\n", current_line_type);
                 printf("ERROR_UNKOWN_LINE_TYPE when parsing NODES\n");
         }
     }
     return token::NODE;
-}
-{RPAREN} {
-    if (optional_token) {
-        switch(current_line_type) {
-            case ANALYSIS_PRINT:
-            case ANALYSIS_PLOT:
-                BEGIN(VARIABLES); current_token_needed = 1; optional_token = true; break;
-            default:
-                printf("Current line type is %d\n", current_line_type);
-                printf("ERROR_UNKOWN_LINE_TYPE when parsing ANALYSIS_TYPE\n");
-        }
-    }
-    return token::RPAREN;
 }
 }
 
@@ -612,30 +595,81 @@ END              [\.][Ee][Nn][Dd]
 %{
 /* variables */
 %}
-{VAR_TYPE_VOLTAGE_REAL}   {return token::VAR_TYPE_VOLTAGE_REAL;}
-{VAR_TYPE_VOLTAGE_IMAG}   {return token::VAR_TYPE_VOLTAGE_IMAG;}
-{VAR_TYPE_VOLTAGE_MAG}    {return token::VAR_TYPE_VOLTAGE_MAG;}
-{VAR_TYPE_VOLTAGE_PHASE}  {return token::VAR_TYPE_VOLTAGE_PHASE;}
-{VAR_TYPE_VOLTAGE_DB}     {return token::VAR_TYPE_VOLTAGE_DB;}
-{VAR_TYPE_CURRENT_REAL}   {return token::VAR_TYPE_CURRENT_REAL;}
-{VAR_TYPE_CURRENT_IMAG}   {return token::VAR_TYPE_CURRENT_IMAG;}
-{VAR_TYPE_CURRENT_MAG}    {return token::VAR_TYPE_CURRENT_MAG;}
-{VAR_TYPE_CURRENT_PHASE}  {return token::VAR_TYPE_CURRENT_PHASE;}
-{VAR_TYPE_CURRENT_DB}     {return token::VAR_TYPE_CURRENT_DB;}
+{VAR_TYPE_VOLTAGE_REAL}   {uppercasing = false; return token::VAR_TYPE_VOLTAGE_REAL;}
+{VAR_TYPE_VOLTAGE_IMAG}   {uppercasing = false; return token::VAR_TYPE_VOLTAGE_IMAG;}
+{VAR_TYPE_VOLTAGE_MAG}    {uppercasing = false; return token::VAR_TYPE_VOLTAGE_MAG;}
+{VAR_TYPE_VOLTAGE_PHASE}  {uppercasing = false; return token::VAR_TYPE_VOLTAGE_PHASE;}
+{VAR_TYPE_VOLTAGE_DB}     {uppercasing = false; return token::VAR_TYPE_VOLTAGE_DB;}
+{VAR_TYPE_CURRENT_REAL}   {uppercasing = true; return token::VAR_TYPE_CURRENT_REAL;}
+{VAR_TYPE_CURRENT_IMAG}   {uppercasing = true; return token::VAR_TYPE_CURRENT_IMAG;}
+{VAR_TYPE_CURRENT_MAG}    {uppercasing = true; return token::VAR_TYPE_CURRENT_MAG;}
+{VAR_TYPE_CURRENT_PHASE}  {uppercasing = true; return token::VAR_TYPE_CURRENT_PHASE;}
+{VAR_TYPE_CURRENT_DB}     {uppercasing = true; return token::VAR_TYPE_CURRENT_DB;}
 
 {COMMA} {
-    BEGIN(NODES);
+    BEGIN(NODES_BRANCHES);
     current_token_needed = 1;
     optional_token = true;
     return token::COMMA;
 }
 {LPAREN} {
-    BEGIN(NODES);
+    BEGIN(NODES_BRANCHES);
     current_token_needed = 1;
     return token::LPAREN;
 }
 {RPAREN} {
     optional_token = true; 
+    return token::RPAREN;
+}
+}
+
+<NODES_BRANCHES>{
+%{
+/* node or branch, lowercase or uppercase */
+%}
+{STRING} {
+    if (uppercasing) {
+        yylval->s = copyStrToupper(yytext);
+    } else {
+        yylval->s = copyStrTolower(yytext); 
+    }
+    if ((--current_token_needed) == 0) {
+        switch(current_line_type) {
+            case ANALYSIS_PRINT:
+            case ANALYSIS_PLOT:
+                BEGIN(VARIABLES); current_token_needed = 1; break;
+            default:
+                printf("Current line type is %d\n", current_line_type);
+                printf("ERROR_UNKOWN_LINE_TYPE when parsing NODES_BRANCHES\n");
+        }
+    }
+    return token::NODE;
+}
+{INTEGER} {
+    yylval->s = copyStrTolower(yytext); 
+    if ((--current_token_needed) == 0) {
+        switch(current_line_type) {
+            case ANALYSIS_PRINT:
+            case ANALYSIS_PLOT:
+                BEGIN(VARIABLES); current_token_needed = 1; break;
+            default:
+                printf("Current line type is %d\n", current_line_type);
+                printf("ERROR_UNKOWN_LINE_TYPE when parsing NODES_BRANCHES\n");
+        }
+    }
+    return token::NODE;
+}
+{RPAREN} {
+    if (optional_token) {
+        switch(current_line_type) {
+            case ANALYSIS_PRINT:
+            case ANALYSIS_PLOT:
+                BEGIN(VARIABLES); current_token_needed = 1; optional_token = true; break;
+            default:
+                printf("Current line type is %d\n", current_line_type);
+                printf("ERROR_UNKOWN_LINE_TYPE when parsing ANALYSIS_TYPE\n");
+        }
+    }
     return token::RPAREN;
 }
 }

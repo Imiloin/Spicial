@@ -159,6 +159,7 @@ class Netlist {
     std::vector<Inductor*> inductors;
     std::vector<VoltageSource*> voltage_sources;
     std::vector<CurrentSource*> current_sources;
+    std::vector<Diode*> diodes;
 };
 
 #endif  // SPICIAL_NETLIST_H

@@ -18,6 +18,11 @@ Simulation::Simulation(Analysis& analysis_,
         MNA_T = MNA_T_;
         RHS_T = RHS_T_;
     }
+    // 应当从 netlist 中获取默认参数
+    // 这里暂时使用默认参数
+    rel_tol = 1e-6;
+    abs_tol = 5e-5;
+    max_iter = 100;
 }
 
 Simulation::~Simulation() {}
@@ -29,6 +34,87 @@ void Simulation::runSimulation() {
         return;
     }
     return;
+}
+
+arma::vec Simulation::solveOneOP(arma::sp_mat& MNA,
+                                 arma::vec& RHS,
+                                 arma::vec& x_prev) {
+    // 为 x_prev 补一个 0，与 index 对应（地节点的电压就是 0）
+    arma::vec x_prev_gnd = x_prev;
+    x_prev_gnd.insert_rows(0, arma::zeros(1));
+
+    // 创建 x_previter
+    arma::vec x_previter = x_prev;
+    // arma::vec x_previter_gnd = x_prev_gnd;
+
+    arma::vec x = x_prev;  // 保存当前迭代的解
+
+    // 对非线性器件进行迭代求解
+    for (int iter = 0; iter < max_iter; iter++) {
+        arma::sp_mat MNA_iter = MNA;
+        arma::vec RHS_iter = RHS;
+
+        x_previter = x;
+        arma::vec x_previter_gnd = x_previter;
+        x_previter_gnd.insert_rows(0, arma::zeros(1));
+
+        for (Diode* diode : netlist.diodes) {
+            int id_nplus = diode->getIdNplus();
+            int id_nminus = diode->getIdNminus();
+            DiodeModel* model = diode->getModel();
+
+            // 从上一轮迭代的解开始迭代
+            double vk = x_previter_gnd(id_nplus) - x_previter_gnd(id_nminus);
+            double ik = model->calcCurrentAtVoltage(vk);
+            double gk = model->calcConductanceAtVoltage(vk);
+            double jk = ik - gk * vk;
+
+            MNA_iter(id_nplus, id_nplus) += gk;
+            MNA_iter(id_nminus, id_nminus) += gk;
+            MNA_iter(id_nplus, id_nminus) -= gk;
+            MNA_iter(id_nminus, id_nplus) -= gk;
+            MNA_iter(id_nplus) -= jk;
+            MNA_iter(id_nminus) += jk;
+        }
+
+        // exclude ground node
+        MNA_iter.shed_row(0);
+        MNA_iter.shed_col(0);
+        RHS_iter.shed_row(0);
+
+        /*
+        // check if the matrix is singular
+        if (arma::det(arma::mat(MNA_iter)) == 0) {
+            qDebug() << "The matrix is singular after shedding the first "
+                        "row and column, cannot solve the system.";
+            x = x_previter;
+            continue;
+        }
+        */
+
+        // MNA_iter.print("MNA_iter");
+        // RHS_iter.print("RHS_iter");
+
+        bool status = arma::spsolve(x, MNA_iter, RHS_iter);
+        // printf("status: %d\n", status);
+        if (!status) {
+            qDebug() << "solveOneOP() solve failed, iter: " << iter;
+            x = x_previter;
+        } else {
+            // x.print("solveOneOP() x:");
+            // 检查是否收敛
+            arma::vec err = arma::abs(x - x_previter);
+            bool status_abs = all(err < abs_tol);
+            bool status_rel = all(err < rel_tol * arma::abs(x_previter));
+            if (status_abs && status_rel) {
+                // qDebug() << "solveOneOP() converged, iter: " << iter;
+                return x;
+            }
+        }
+    }
+    std::cout << "Warning: solveOneOP() max_iter reached, cannot converge."
+              << std::endl;
+    return x;
 }
 
 DCSimulation::DCSimulation(Analysis& analysis_,
@@ -49,53 +135,39 @@ void DCSimulation::runSimulation() {
     int source_type = analysis.source_type;
     std::string source = analysis.source_name;
 
-    qDebug() << "DCSimulation::runSimulation() source_type: " << source_type;
+    qDebug() << "DCSimulation::runSimulation()";
+
+    arma::vec x = *RHS_DC_T;  // (偷懒)直接用 RHS_DC_T 作为默认值
+    x.shed_row(0);  // 去掉 ground node
+
     switch (source_type) {
         case (COMPONENT_VOLTAGE_SOURCE): {
             qDebug() << "DCSimulation::runSimulation() source: "
                      << source.c_str();
+            Component* voltage_source = netlist.getComponentPtr(source);
+            if (voltage_source == nullptr) {
+                qDebug() << "DCSimulation::runSimulation() voltage source not "
+                            "found.";
+                return;
+            }
             int id_vsrc =
-                dynamic_cast<VoltageSource*>(netlist.getComponentPtr(source))
-                    ->getIdBranch();
+                dynamic_cast<VoltageSource*>(voltage_source)->getIdBranch();
 
-            for (double voltage : analysis.iter_values) {
+            for (double voltage : analysis.sim_values) {
                 arma::sp_mat MNA_DC = *MNA_DC_T;
                 arma::vec RHS_DC = *RHS_DC_T;
+                arma::vec x_prev = x;
+
                 RHS_DC(id_vsrc) = voltage;
 
-                // exclude ground node
-                MNA_DC.shed_row(0);
-                MNA_DC.shed_col(0);
-                RHS_DC.shed_row(0);
-
-                // check if the matrix is singular
-                if (arma::det(arma::mat(MNA_DC)) == 0) {
-                    qDebug()
-                        << "The matrix is singular after shedding the first "
-                           "row and column, cannot solve the system.";
-                    continue;
-                }
-
-                // qDebug() << "Source: " << source.c_str()
-                //          << "at voltage: " << voltage;
-                // MNA_DC.print("MNA_DC");
-                // RHS_DC.print("RHS_DC");
-
-                arma::vec x;
-                bool status = arma::spsolve(x, MNA_DC, RHS_DC);
-                // printf("status: %d\n", status);
-                if (!status) {
-                    qDebug() << "DCSimulation::runSimulation() solve failed.";
-                } else {
-                    // x.print("DCSimulation::runSimulation() x:");
-                    // /////////////////////
-                }
+                x = solveOneOP(MNA_DC, RHS_DC, x_prev);
                 iter_results.push_back(x);
             }
             break;
         }
         case (COMPONENT_CURRENT_SOURCE): {
-            qDebug() << "DCSimulation() source: " << source.c_str();
+            qDebug() << "DCSimulation::runSimulation() source: "
+                     << source.c_str();
             Component* current_source = netlist.getComponentPtr(source);
             if (current_source == nullptr) {
                 qDebug() << "DCSimulation::runSimulation() current source not "
@@ -109,39 +181,15 @@ void DCSimulation::runSimulation() {
                 dynamic_cast<CurrentSource*>(netlist.getComponentPtr(source))
                     ->getIdNminus();
 
-            for (double current : analysis.iter_values) {
+            for (double current : analysis.sim_values) {
                 arma::sp_mat MNA_DC = *MNA_DC_T;
                 arma::vec RHS_DC = *RHS_DC_T;
+                arma::vec x_prev = x;
+
                 RHS_DC(id_nplus) = -current;
                 RHS_DC(id_nminus) = current;
 
-                // exclude ground node
-                MNA_DC.shed_row(0);
-                MNA_DC.shed_col(0);
-                RHS_DC.shed_row(0);
-
-                // check if the matrix is singular
-                if (arma::det(arma::mat(MNA_DC)) == 0) {
-                    qDebug()
-                        << "The matrix is singular after shedding the first "
-                           "row and column, cannot solve the system.";
-                    continue;
-                }
-
-                // qDebug() << "Source " << source.c_str()
-                //          << "at current: " << current;
-                // MNA_DC.print("MNA_DC");
-                // RHS_DC.print("RHS_DC");
-
-                arma::vec x;
-                bool status = arma::spsolve(x, MNA_DC, RHS_DC);
-                // printf("status: %d\n", status);
-                if (!status) {
-                    qDebug() << "DCSimulation::runSimulation() solve failed.";
-                } else {
-                    // x.print("DCSimulation::runSimulation() x:");
-                    // /////////////////////
-                }
+                x = solveOneOP(MNA_DC, RHS_DC, x_prev);
                 iter_results.push_back(x);
             }
             break;
@@ -200,7 +248,7 @@ void ACSimulation::runSimulation() {
     qDebug() << "ACSimulation::runSimulation()";
 
     // 运行 AC 分析
-    for (double freq : analysis.iter_values) {
+    for (double freq : analysis.sim_values) {
         arma::sp_cx_mat MNA_AC = *MNA_AC_T;
         arma::cx_vec RHS_AC = *RHS_AC_T;
 
@@ -267,9 +315,9 @@ TranSimulation::TranSimulation(Analysis& analysis_,
     tstart = 0;
     tstep = analysis.step;
     tstop = 0;
-    if (!analysis.iter_values.empty()) {
-        tstart = analysis.iter_values.front();
-        tstop = analysis.iter_values.back();
+    if (!analysis.sim_values.empty()) {
+        tstart = analysis.sim_values.front();
+        tstop = analysis.sim_values.back();
     }
 
     // 生成 Tran 状态 MNA，复制 base MNA
@@ -291,12 +339,12 @@ TranSimulation::TranSimulation(Analysis& analysis_,
 
 arma::vec TranSimulation::tranBackEuler(double time,
                                         double h,
-                                        const arma::vec x_prev) {
+                                        const arma::vec x_prevtime) {
     // int node_num = nodes.getNodeNum();
     arma::sp_mat MNA_TRAN = *MNA_TRAN_T;
     arma::vec RHS_TRAN = *RHS_TRAN_T;
-    arma::vec x_prev_gnd = x_prev;
-    x_prev_gnd.insert_rows(0, arma::zeros(1));  // insert ground node
+    arma::vec x_prevtime_gnd = x_prevtime;
+    x_prevtime_gnd.insert_rows(0, arma::zeros(1));  // insert ground node
 
     for (Capacitor* capacitor : netlist.capacitors) {
         int id_nplus = capacitor->getIdNplus();
@@ -307,7 +355,7 @@ arma::vec TranSimulation::tranBackEuler(double time,
         MNA_TRAN(id_branch, id_nplus) = capacitance / h;
         MNA_TRAN(id_branch, id_nminus) = -capacitance / h;
         RHS_TRAN(id_branch) =
-            capacitance / h * (x_prev_gnd(id_nplus) - x_prev_gnd(id_nminus));
+            capacitance / h * (x_prevtime_gnd(id_nplus) - x_prevtime_gnd(id_nminus));
     }
 
     for (Inductor* inductor : netlist.inductors) {
@@ -315,7 +363,7 @@ arma::vec TranSimulation::tranBackEuler(double time,
         int id_branch = inductor->getIdBranch();
 
         MNA_TRAN(id_branch, id_branch) = -inductance / h;
-        RHS_TRAN(id_branch) = -inductance / h * x_prev_gnd(id_branch);
+        RHS_TRAN(id_branch) = -inductance / h * x_prevtime_gnd(id_branch);
     }
 
     for (VoltageSource* voltage_source : netlist.voltage_sources) {
@@ -360,7 +408,7 @@ arma::vec TranSimulation::tranBackEuler(double time,
     // printf("status: %d\n", status);
     if (!status) {
         qDebug() << "TranSimulation() solve failed.";
-        return x_prev;
+        return x_prevtime;
     } else {
         return x;
     }
@@ -369,8 +417,8 @@ arma::vec TranSimulation::tranBackEuler(double time,
 void TranSimulation::runSimulation() {
     qDebug() << "TranSimulation::runSimulation()";
     double h = analysis.step;  // 为简化处理，使用恒定步长
-    double time = 0;  // 当前时间点
-    arma::vec x;      // 保存当前时间点的解
+    double time = 0;           // 当前时间点
+    arma::vec x;               // 保存当前时间点的解
 
     if (MNA_TRAN_T == nullptr || RHS_TRAN_T == nullptr) {
         qDebug() << "generateTranMNA() failed.";
@@ -449,7 +497,7 @@ void TranSimulation::runSimulation() {
         // x.print("TranSimulation() t=0 x:");
     }
     if (tstart == 0) {
-        iter_results.push_back(x);    // time = 0 的解
+        iter_results.push_back(x);  // time = 0 的解
     }
 
     delete MNA_TRAN_0;
@@ -468,13 +516,13 @@ void TranSimulation::runSimulation() {
         double h_last = tstart - time;
         time = tstart;
         x = tranBackEuler(tstart, h_last, x);
-        iter_results.push_back(x);    // tstart 的解
+        iter_results.push_back(x);  // tstart 的解
     }
     // 求解 (tstart, tstop] 的解 //
     // std::cout << (time < tstop) << std::endl;
     for (time += h; time <= tstop; time += tstep) {
         x = tranBackEuler(time, h, x);
-        iter_results.push_back(x);    // time 的解
+        iter_results.push_back(x);  // time 的解
         // std::cout << "time: " << time << "\t";
         // x.print("TranSimulation() x:");
     }

@@ -362,6 +362,7 @@ void Netlist::parseDiode(const std::string& name,
     }
 
     this->addComponent(diode);
+    diodes.push_back(diode);
 }
 
 void Netlist::parseDC(int source_type,
@@ -371,22 +372,27 @@ void Netlist::parseDC(int source_type,
                       double increment) {
     Analysis* analysis = new Analysis();
 
+    // 将source中的字母转换为大写
+    std::string source_u = source;
+    std::transform(source_u.begin(), source_u.end(), source_u.begin(),
+                   [](unsigned char c) { return std::toupper(c); });
+
     analysis->analysis_type = ANALYSIS_DC;
     analysis->source_type = source_type;
-    analysis->source_name = source;
+    analysis->source_name = source_u;
     for (double iter = start; iter <= end; iter += increment) {
-        analysis->iter_values.push_back(iter);
+        analysis->sim_values.push_back(iter);
     }
 
     switch (source_type) {
         case (COMPONENT_VOLTAGE_SOURCE): {
-            // qDebug() << "parseDC() source: " << source.c_str();
-            analysis->iter_name = "voltage(" + source + ") / V";
+            // qDebug() << "parseDC() source: " << source_u.c_str();
+            analysis->sim_name = "voltage(" + source_u + ") / V";
             break;
         }
         case (COMPONENT_CURRENT_SOURCE): {
-            // qDebug() << "parseDC() source: " << source.c_str();
-            analysis->iter_name = "current(" + source + ") / A";
+            // qDebug() << "parseDC() source: " << source_u.c_str();
+            analysis->sim_name = "current(" + source_u + ") / A";
             break;
         }
         default:
@@ -403,7 +409,7 @@ void Netlist::parseAC(int ac_type,
     Analysis* analysis = new Analysis();
 
     analysis->analysis_type = ANALYSIS_AC;
-    analysis->iter_name = "frequency / Hz";
+    analysis->sim_name = "frequency / Hz";
 
     // qDebug() << "parseAC() ac_type: " << ac_type;
 
@@ -413,25 +419,25 @@ void Netlist::parseAC(int ac_type,
             int n_per_dec = std::round(n);
             double ratio = pow(10.0, 1.0 / n_per_dec);
             for (double freq = freq_start; freq < freq_end; freq *= ratio) {
-                analysis->iter_values.push_back(freq);
+                analysis->sim_values.push_back(freq);
             }
-            analysis->iter_values.push_back(freq_end);
+            analysis->sim_values.push_back(freq_end);
             break;
         }
         case (TOKEN_OCT): {
             int n_per_oct = std::round(n);
             double ratio = pow(8.0, 1.0 / n_per_oct);
             for (double freq = freq_start; freq < freq_end; freq *= ratio) {
-                analysis->iter_values.push_back(freq);
+                analysis->sim_values.push_back(freq);
             }
-            analysis->iter_values.push_back(freq_end);
+            analysis->sim_values.push_back(freq_end);
             break;
         }
         case (TOKEN_LIN): {
             int n_lin = std::round(n);
             double step = (freq_end - freq_start) / n_lin;
             for (double freq = freq_start; freq <= freq_end; freq += step) {
-                analysis->iter_values.push_back(freq);
+                analysis->sim_values.push_back(freq);
             }
             break;
         }
@@ -450,11 +456,11 @@ void Netlist::parseTran(double step, double stop_time, double start_time) {
     Analysis* analysis = new Analysis();
 
     analysis->analysis_type = ANALYSIS_TRAN;
-    analysis->iter_name = "time / s";
+    analysis->sim_name = "time / s";
     analysis->step = step;
 
     for (double time = start_time; time <= stop_time; time += step) {
-        analysis->iter_values.push_back(time);  // 保存仿真时间点
+        analysis->sim_values.push_back(time);  // 保存仿真时间点
     }
 
     analyses.push_back(analysis);

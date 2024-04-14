@@ -308,22 +308,7 @@ void Circuit::generateMNATemplate() {
                 break;
             }
             case COMPONENT_DIODE: {
-                Diode* diode = dynamic_cast<Diode*>(component);
-                int id_nplus = diode->getIdNplus();
-                int id_nminus = diode->getIdNminus();
-                DiodeModel* model = diode->getModel();
-
-                double v0 = 0;  // 从0V开始迭代
-                double i0 = model->calcCurrentAtVoltage(v0);
-                double g0 = model->calcConductanceAtVoltage(v0);
-                double j0 = i0 - g0 * v0;
-
-                (*MNA)(id_nplus, id_nplus) += g0;
-                (*MNA)(id_nminus, id_nminus) += g0;
-                (*MNA)(id_nplus, id_nminus) -= g0;
-                (*MNA)(id_nminus, id_nplus) -= g0;
-                (*RHS)(id_nplus) -= j0;
-                (*RHS)(id_nminus) += j0;
+                // 非线性器件在求解时再处理
                 break;
             }
             default: {
@@ -687,12 +672,12 @@ void Circuit::outputResults() {
             break;
         }
 
-        std::string iter_name = dc_simulation->getIterName();
-        std::vector<double> iter_values = dc_simulation->getIterValues();
+        std::string sim_name = dc_simulation->getSimName();
+        std::vector<double> sim_values = dc_simulation->getIterValues();
         std::vector<arma::vec> iter_results = dc_simulation->getIterResults();
 
         // create xdata
-        ColumnData xdata = ColumnData{iter_name, iter_values};
+        ColumnData xdata = ColumnData{sim_name, sim_values};
 
         // create print ydata
         std::vector<ColumnData> ydata_print;
@@ -721,13 +706,13 @@ void Circuit::outputResults() {
             break;
         }
 
-        std::string iter_name = ac_simulation->getIterName();
-        std::vector<double> iter_values = ac_simulation->getIterValues();
+        std::string sim_name = ac_simulation->getSimName();
+        std::vector<double> sim_values = ac_simulation->getIterValues();
         std::vector<arma::cx_vec> iter_cresults =
             ac_simulation->getIterResults();
 
         // create xdata
-        ColumnData xdata = ColumnData{iter_name, iter_values};
+        ColumnData xdata = ColumnData{sim_name, sim_values};
 
         // create print ydata
         std::vector<ColumnData> ydata_print;
@@ -756,12 +741,12 @@ void Circuit::outputResults() {
             break;
         }
 
-        std::string iter_name = tran_simulation->getIterName();
-        std::vector<double> iter_values = tran_simulation->getIterValues();
+        std::string sim_name = tran_simulation->getSimName();
+        std::vector<double> sim_values = tran_simulation->getIterValues();
         std::vector<arma::vec> iter_results = tran_simulation->getIterResults();
 
         // create xdata
-        ColumnData xdata = ColumnData{iter_name, iter_values};
+        ColumnData xdata = ColumnData{sim_name, sim_values};
 
         // create print ydata
         std::vector<ColumnData> ydata_print;
