@@ -330,6 +330,7 @@ void Circuit::printMNATemplate() {
         qDebug() << "MNA_T or RHS_T is nullptr.";
         return;
     }
+    std::cout << std::endl;
     std::cout << "-------------------------------" << std::endl;
     (arma::mat(*MNA_T)).print("MNA_T");
     (*RHS_T).print("RHS_T");
@@ -392,7 +393,7 @@ void Circuit::runSimulations() {
 
 std::vector<ColumnData> Circuit::createOutputYData(
     const std::vector<Variable>& var_list,
-    const std::vector<arma::vec>& iter_results) {
+    const std::vector<arma::vec>& sim_results) {
     std::vector<ColumnData> ydata;
     // 不要用 getComponentPtr()，里面的索引包含地节点
     for (const auto& var : var_list) {
@@ -414,7 +415,7 @@ std::vector<ColumnData> Circuit::createOutputYData(
                 case TOKEN_VAR_VOLTAGE_MAG: {
                     y.name = "V(" + node_branch + ")";
                     int id_node = nodes.getNodeIndexExgnd(node_branch);
-                    for (const auto& result : iter_results) {
+                    for (const auto& result : sim_results) {
                         y.values.push_back(result(id_node));
                     }
                     break;
@@ -429,7 +430,7 @@ std::vector<ColumnData> Circuit::createOutputYData(
                 case TOKEN_VAR_VOLTAGE_DB: {
                     y.name = "VDB(" + node_branch + ")";
                     int id_node = nodes.getNodeIndexExgnd(node_branch);
-                    for (const auto& result : iter_results) {
+                    for (const auto& result : sim_results) {
                         y.values.push_back(20 * log10(result(id_node)));
                     }
                     break;
@@ -451,7 +452,7 @@ std::vector<ColumnData> Circuit::createOutputYData(
                     int node_num = nodes.getNodeNumExgnd();
                     int id_branch =
                         branches.getBranchIndex(node_branch) + node_num;
-                    for (const auto& result : iter_results) {
+                    for (const auto& result : sim_results) {
                         y.values.push_back(result(id_branch));
                     }
                     break;
@@ -468,7 +469,7 @@ std::vector<ColumnData> Circuit::createOutputYData(
                     int node_num = nodes.getNodeNumExgnd();
                     int id_branch =
                         branches.getBranchIndex(node_branch) + node_num;
-                    for (const auto& result : iter_results) {
+                    for (const auto& result : sim_results) {
                         y.values.push_back(20 * log10(result(id_branch)));
                     }
                     break;
@@ -486,7 +487,7 @@ std::vector<ColumnData> Circuit::createOutputYData(
 
 std::vector<ColumnData> Circuit::createOutputYData(
     const std::vector<Variable>& var_list,
-    const std::vector<arma::cx_vec>& iter_cresults) {
+    const std::vector<arma::cx_vec>& sim_cresults) {
     std::vector<ColumnData> ydata;
 
     for (const auto& var : var_list) {
@@ -496,7 +497,7 @@ std::vector<ColumnData> Circuit::createOutputYData(
                 case TOKEN_VAR_VOLTAGE_REAL: {
                     y.name = "VR(" + node_branch + ")";
                     int id_node = nodes.getNodeIndexExgnd(node_branch);
-                    for (const auto& cresult : iter_cresults) {
+                    for (const auto& cresult : sim_cresults) {
                         y.values.push_back(real(cresult(id_node)));
                     }
                     break;
@@ -504,7 +505,7 @@ std::vector<ColumnData> Circuit::createOutputYData(
                 case TOKEN_VAR_VOLTAGE_IMAG: {
                     y.name = "VI(" + node_branch + ")";
                     int id_node = nodes.getNodeIndexExgnd(node_branch);
-                    for (const auto& cresult : iter_cresults) {
+                    for (const auto& cresult : sim_cresults) {
                         y.values.push_back(imag(cresult(id_node)));
                     }
                     break;
@@ -512,7 +513,7 @@ std::vector<ColumnData> Circuit::createOutputYData(
                 case TOKEN_VAR_VOLTAGE_MAG: {
                     y.name = "V(" + node_branch + ")";
                     int id_node = nodes.getNodeIndexExgnd(node_branch);
-                    for (const auto& cresult : iter_cresults) {
+                    for (const auto& cresult : sim_cresults) {
                         y.values.push_back(abs(cresult(id_node)));
                     }
                     break;
@@ -520,7 +521,7 @@ std::vector<ColumnData> Circuit::createOutputYData(
                 case TOKEN_VAR_VOLTAGE_PHASE: {
                     y.name = "VP(" + node_branch + ")";
                     int id_node = nodes.getNodeIndexExgnd(node_branch);
-                    for (const auto& cresult : iter_cresults) {
+                    for (const auto& cresult : sim_cresults) {
                         y.values.push_back(arg(cresult(id_node)));
                     }
                     break;
@@ -528,7 +529,7 @@ std::vector<ColumnData> Circuit::createOutputYData(
                 case TOKEN_VAR_VOLTAGE_DB: {
                     y.name = "VDB(" + node_branch + ")";
                     int id_node = nodes.getNodeIndexExgnd(node_branch);
-                    for (const auto& cresult : iter_cresults) {
+                    for (const auto& cresult : sim_cresults) {
                         y.values.push_back(20 * log10(abs(cresult(id_node))));
                     }
                     break;
@@ -538,7 +539,7 @@ std::vector<ColumnData> Circuit::createOutputYData(
                     int node_num = nodes.getNodeNumExgnd();
                     int id_branch =
                         branches.getBranchIndex(node_branch) + node_num;
-                    for (const auto& cresult : iter_cresults) {
+                    for (const auto& cresult : sim_cresults) {
                         y.values.push_back(real(cresult(id_branch)));
                     }
                     break;
@@ -548,7 +549,7 @@ std::vector<ColumnData> Circuit::createOutputYData(
                     int node_num = nodes.getNodeNumExgnd();
                     int id_branch =
                         branches.getBranchIndex(node_branch) + node_num;
-                    for (const auto& cresult : iter_cresults) {
+                    for (const auto& cresult : sim_cresults) {
                         y.values.push_back(imag(cresult(id_branch)));
                     }
                     break;
@@ -558,7 +559,7 @@ std::vector<ColumnData> Circuit::createOutputYData(
                     int node_num = nodes.getNodeNumExgnd();
                     int id_branch =
                         branches.getBranchIndex(node_branch) + node_num;
-                    for (const auto& cresult : iter_cresults) {
+                    for (const auto& cresult : sim_cresults) {
                         y.values.push_back(abs(cresult(id_branch)));
                     }
                     break;
@@ -568,7 +569,7 @@ std::vector<ColumnData> Circuit::createOutputYData(
                     int node_num = nodes.getNodeNumExgnd();
                     int id_branch =
                         branches.getBranchIndex(node_branch) + node_num;
-                    for (const auto& cresult : iter_cresults) {
+                    for (const auto& cresult : sim_cresults) {
                         y.values.push_back(arg(cresult(id_branch)));
                     }
                     break;
@@ -578,7 +579,7 @@ std::vector<ColumnData> Circuit::createOutputYData(
                     int node_num = nodes.getNodeNumExgnd();
                     int id_branch =
                         branches.getBranchIndex(node_branch) + node_num;
-                    for (const auto& cresult : iter_cresults) {
+                    for (const auto& cresult : sim_cresults) {
                         y.values.push_back(20 * log10(abs(cresult(id_branch))));
                     }
                     break;
@@ -663,14 +664,14 @@ void Circuit::outputResults() {
 
         std::string sim_name = dc_simulation->getSimName();
         std::vector<double> sim_values = dc_simulation->getIterValues();
-        std::vector<arma::vec> iter_results = dc_simulation->getIterResults();
+        std::vector<arma::vec> sim_results = dc_simulation->getIterResults();
 
         // create xdata
         ColumnData xdata = ColumnData{sim_name, sim_values};
 
         // create print ydata
         std::vector<ColumnData> ydata_print;
-        ydata_print = createOutputYData(dc_print_requests, iter_results);
+        ydata_print = createOutputYData(dc_print_requests, sim_results);
 
         // print
         printOutputData(xdata, ydata_print, "dc", dc_sim_id);
@@ -680,7 +681,7 @@ void Circuit::outputResults() {
         }
         // create plot ydata
         std::vector<ColumnData> ydata_plot;
-        ydata_plot = createOutputYData(dc_plot_requests, iter_results);
+        ydata_plot = createOutputYData(dc_plot_requests, sim_results);
 
         // plot
         plotOutputData(xdata, ydata_plot);
@@ -697,7 +698,7 @@ void Circuit::outputResults() {
 
         std::string sim_name = ac_simulation->getSimName();
         std::vector<double> sim_values = ac_simulation->getIterValues();
-        std::vector<arma::cx_vec> iter_cresults =
+        std::vector<arma::cx_vec> sim_cresults =
             ac_simulation->getIterResults();
 
         // create xdata
@@ -705,7 +706,7 @@ void Circuit::outputResults() {
 
         // create print ydata
         std::vector<ColumnData> ydata_print;
-        ydata_print = createOutputYData(ac_print_requests, iter_cresults);
+        ydata_print = createOutputYData(ac_print_requests, sim_cresults);
 
         // print
         printOutputData(xdata, ydata_print, "ac", 0);
@@ -715,7 +716,7 @@ void Circuit::outputResults() {
         }
         // create plot ydata
         std::vector<ColumnData> ydata_plot;
-        ydata_plot = createOutputYData(ac_plot_requests, iter_cresults);
+        ydata_plot = createOutputYData(ac_plot_requests, sim_cresults);
 
         // plot
         plotOutputData(xdata, ydata_plot);
@@ -732,14 +733,14 @@ void Circuit::outputResults() {
 
         std::string sim_name = tran_simulation->getSimName();
         std::vector<double> sim_values = tran_simulation->getIterValues();
-        std::vector<arma::vec> iter_results = tran_simulation->getIterResults();
+        std::vector<arma::vec> sim_results = tran_simulation->getIterResults();
 
         // create xdata
         ColumnData xdata = ColumnData{sim_name, sim_values};
 
         // create print ydata
         std::vector<ColumnData> ydata_print;
-        ydata_print = createOutputYData(tran_print_requests, iter_results);
+        ydata_print = createOutputYData(tran_print_requests, sim_results);
 
         // print
         printOutputData(xdata, ydata_print, "tran", 0);
@@ -749,7 +750,7 @@ void Circuit::outputResults() {
         }
         // create plot ydata
         std::vector<ColumnData> ydata_plot;
-        ydata_plot = createOutputYData(tran_plot_requests, iter_results);
+        ydata_plot = createOutputYData(tran_plot_requests, sim_results);
 
         // plot
         plotOutputData(xdata, ydata_plot);

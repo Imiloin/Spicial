@@ -91,7 +91,9 @@ Component* Netlist::getComponentPtr(const std::string& name) const {
 }
 
 void Netlist::printComponentSize() const {
-    std::cout << "-------------------------------" << std::endl;
+    std::cout << std::endl;
+    std::cout << "-------------------------------" << std::endl
+              << "Components: {name: count}" << std::endl;
     std::cout << "Resistor: " << resistor_name_set.size() << std::endl;
     std::cout << "Capacitor: " << capacitor_name_set.size() << std::endl;
     std::cout << "Inductor: " << inductor_name_set.size() << std::endl;

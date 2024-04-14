@@ -27,7 +27,9 @@ class Simulation {  // 静态工作点的基类
     }
 
     // 求解一个工作点
-    arma::vec solveOneOP(arma::sp_mat& MNA, arma::vec& RHS, arma::vec& x_prev);  // real
+    arma::vec solveOneOP(arma::sp_mat& MNA,
+                         arma::vec& RHS,
+                         arma::vec& x_prev) const;  // real
 
    protected:
     const Analysis& analysis;
@@ -43,6 +45,8 @@ class Simulation {  // 静态工作点的基类
     // MNA and RHS templates
     static const arma::sp_mat* MNA_T;
     static const arma::vec* RHS_T;
+
+    double sim_value;  // simulation point value
 };
 
 class DCSimulation : public Simulation {
@@ -60,7 +64,7 @@ class DCSimulation : public Simulation {
     arma::sp_mat* MNA_DC_T;
     arma::vec* RHS_DC_T;
 
-    std::vector<arma::vec> iter_results;  // exclude gnd!!!
+    std::vector<arma::vec> sim_results;  // exclude gnd!!!
 };
 
 class ACSimulation : public Simulation {
@@ -78,7 +82,7 @@ class ACSimulation : public Simulation {
     arma::sp_cx_mat* MNA_AC_T;
     arma::cx_vec* RHS_AC_T;
 
-    std::vector<arma::cx_vec> iter_cresults;  // exclude gnd!!!
+    std::vector<arma::cx_vec> sim_cresults;  // exclude gnd!!!
 };
 
 class TranSimulation : public Simulation {
@@ -88,9 +92,7 @@ class TranSimulation : public Simulation {
                    Nodes& nodes_,
                    Branches& branches_);
 
-    arma::vec tranBackEuler(double time,
-                            double h,
-                            const arma::vec x_prevtime);
+    arma::vec tranBackEuler(double time, double h, arma::vec x_prevtime) const;
 
     void runSimulation() override;
 
@@ -104,7 +106,7 @@ class TranSimulation : public Simulation {
     double tstep;
     double tstop;
 
-    std::vector<arma::vec> iter_results;  // exclude gnd!!!
+    std::vector<arma::vec> sim_results;  // exclude gnd!!!
 };
 
 #endif  // SPICIAL_SIMULATION_H

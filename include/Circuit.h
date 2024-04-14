@@ -44,10 +44,10 @@ class Circuit {
 
     std::vector<ColumnData> createOutputYData(  // 重载实数版本
         const std::vector<Variable>& var_list,
-        const std::vector<arma::vec>& iter_results);
+        const std::vector<arma::vec>& sim_results);
     std::vector<ColumnData> createOutputYData(  // 重载复数版本
         const std::vector<Variable>& var_list,
-        const std::vector<arma::cx_vec>& iter_cresults);
+        const std::vector<arma::cx_vec>& sim_cresults);
     void outputResults();
     void printOutputData(ColumnData& xdata,
                          std::vector<ColumnData>& ydata,
