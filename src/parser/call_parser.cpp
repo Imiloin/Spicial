@@ -22,12 +22,14 @@ Netlist *callNetlistParser(const char* fileName) {
     yyrestart(yyin);
 
     // read title and move the pointer to second line
-    char title[128];
-    fgets(title, 128, yyin);
-    printf("[Title] %s", title);
+    char ch_title[128];
+    fgets(ch_title, 128, yyin);
+    std::string title(ch_title);
+    title.erase(title.find_last_not_of("\n\r") + 1);  // 去除末尾的换行符
+    printf("[Title] %s", title.c_str());
 
     // create netlist instance
-    Netlist *netlist = new Netlist(fileName);
+    Netlist *netlist = new Netlist(fileName, title);
 
     yy::Parser parser(netlist);
     int ret = parser.parse();

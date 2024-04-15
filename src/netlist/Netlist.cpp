@@ -1,8 +1,9 @@
 #include "Netlist.h"
 #include <QDebug>
 
-Netlist::Netlist(const std::string& file) {
+Netlist::Netlist(const std::string& file, const std::string& title) {
     this->file_path = file;
+    this->title = title;
 
     /////// test only ////////
     Model* diode1 = new DiodeModel("diode1");
@@ -261,9 +262,12 @@ void Netlist::parseVoltageSource(const std::string& name,
 void Netlist::parseVoltageSource(const std::string& name,
                                  const std::string& nplus,
                                  const std::string& nminus,
+                                 double dc_voltage,
+                                 double ac_magnitude,
+                                 double ac_phase,
                                  const Function& func) {
-    VoltageSource* voltage_source =
-        new VoltageSource(name, nplus, nminus, 0, 0, 0);
+    VoltageSource* voltage_source = new VoltageSource(
+        name, nplus, nminus, dc_voltage, ac_magnitude, ac_phase);
     voltage_source->setFunction(&func);
     if (!voltagesource_name_set.insert(name)
              .second) {  // if already exists in the set
@@ -304,9 +308,12 @@ void Netlist::parseCurrentSource(const std::string& name,
 void Netlist::parseCurrentSource(const std::string& name,
                                  const std::string& nplus,
                                  const std::string& nminus,
+                                 double dc_current,
+                                 double ac_magnitude,
+                                 double ac_phase,
                                  const Function& func) {
-    CurrentSource* current_source =
-        new CurrentSource(name, nplus, nminus, 0, 0, 0);
+    CurrentSource* current_source = new CurrentSource(
+        name, nplus, nminus, dc_current, ac_magnitude, ac_phase);
     current_source->setFunction(&func);
     if (!currentsource_name_set.insert(name)
              .second) {  // if already exists in the set

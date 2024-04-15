@@ -54,7 +54,8 @@ class Circuit {
                          std::string sim_type,
                          int sim_id = 0) const;
     void plotOutputData(ColumnData& xdata,
-                        std::vector<ColumnData>& ydata) const;
+                        std::vector<ColumnData>& ydata,
+                        const std::string& title) const;
 
    private:
     Netlist& netlist;

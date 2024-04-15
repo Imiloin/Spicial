@@ -121,6 +121,7 @@ VALUE_INDUCTANCE    {VALUE}[Hh]
 VALUE_TIME          {VALUE}[Ss]
 VALUE_LENGTH        ({FLOAT}|[\-]?{INTEGER}){UNIT}[Mm]
 VALUE_FREQUENCY     {VALUE}[Hh][Zz]
+VALUE_ANGLE         {VALUE}[Dd][Ee][Gg]
 
 VAR_TYPE_VOLTAGE_REAL    [Vv][Rr]
 VAR_TYPE_VOLTAGE_IMAG    [Vv][Ii]
@@ -716,6 +717,12 @@ END              [\.][Ee][Nn][Dd]
     free(temp);
     return token::VALUE_TIME;
 }
+{VALUE_ANGLE} {
+    char* temp = strndup(yytext, yyleng - 3);
+    yylval->f = parseValue(temp);
+    free(temp);
+    return token::VALUE_ANGLE;
+}
 {LPAREN} {
     return token::LPAREN;
 }
@@ -855,6 +862,21 @@ END              [\.][Ee][Nn][Dd]
         }
     }
     return token::VALUE_FREQUENCY;
+}
+{VALUE_ANGLE} {
+    char* temp = strndup(yytext, yyleng - 3);
+    yylval->f = parseValue(temp);
+    free(temp);
+    if ((--current_token_needed) == 0) {
+        switch(current_line_type) {
+            case ANALYSIS_AC:
+                current_token_needed = 0; break;
+            default:
+                printf("Current line type is %d\n", current_line_type);
+                printf("ERROR_UNKOWN_LINE_TYPE when parsing VALUES\n");
+        }
+    }
+    return token::VALUE_ANGLE;
 }
 }
 

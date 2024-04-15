@@ -55,6 +55,7 @@ bison -v -d -o src/parser.cpp src/parser.yy
     double f;  // float
     int    n;  // integer
     char  *s;  // string
+    std::vector<double> *d;  // double vector
     std::vector<std::string> *v;  // vector
     struct Variable *var;  // variable
     std::vector<Variable> *var_list;  // variable vector
@@ -67,7 +68,7 @@ bison -v -d -o src/parser.cpp src/parser.yy
 %token<f> FLOAT
 /* %token<s> STRING */
 %token<n> INTEGER
-%token<f> VALUE VALUE_VOLTAGE VALUE_CURRENT VALUE_RESISTANCE VALUE_CAPACITANCE VALUE_INDUCTANCE VALUE_TIME VALUE_LENGTH VALUE_FREQUENCY
+%token<f> VALUE VALUE_VOLTAGE VALUE_CURRENT VALUE_RESISTANCE VALUE_CAPACITANCE VALUE_INDUCTANCE VALUE_TIME VALUE_LENGTH VALUE_FREQUENCY VALUE_ANGLE
 
 // component
 %token<s> RESISTOR CAPACITOR INDUCTOR VCVS CCCS VCCS CCVS VOLTAGE_SOURCE CURRENT_SOURCE DIODE
@@ -98,7 +99,9 @@ bison -v -d -o src/parser.cpp src/parser.yy
 %token END EOL
 
 
-%type<f> value value_voltage value_current value_resistance value_capacitance value_inductance value_time value_length value_frequency
+%type<f> value value_voltage value_current value_resistance value_capacitance value_inductance value_time value_length value_frequency value_angle
+%type<f> dc_volage_value dc_current_value
+%type<d> ac_voltage_value_phase ac_current_value_phase
 %type<n> analysis_type ac_type var_type
 %type<f> ic_param_voltage ic_param_current
 %type<s> node modelname
@@ -209,46 +212,21 @@ component_ccvs: CCVS node node node value
     }
 ;
 
-component_voltage_source: VOLTAGE_SOURCE node node value_voltage
+component_voltage_source: VOLTAGE_SOURCE node node dc_volage_value ac_voltage_value_phase
     {
-        printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) Value(%f)\n", $1, $2, $3, $4);
-        netlist->parseVoltageSource($1, $2, $3, $4, 0, 0);
+        printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f) Phase(%f)\n", $1, $2, $3, $4, $5->at(0), $5->at(1));
+        netlist->parseVoltageSource($1, $2, $3, $4, $5->at(0), $5->at(1));
     }
-    | VOLTAGE_SOURCE node node TYPE_DC value_voltage
+    | VOLTAGE_SOURCE node node dc_volage_value ac_voltage_value_phase function
     {
-        printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) DC Value(%f)\n", $1, $2, $3, $5);
-        netlist->parseVoltageSource($1, $2, $3, $5, 0, 0);
-    }
-    | VOLTAGE_SOURCE node node value_voltage TYPE_AC value_voltage
-    {
-        printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f)\n", $1, $2, $3, $4, $6);
-        netlist->parseVoltageSource($1, $2, $3, $4, $6, 0);
-    }
-    | VOLTAGE_SOURCE node node value_voltage TYPE_AC value_voltage value
-    {
-        printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f) Phase(%f)\n", $1, $2, $3, $4, $6, $7);
-        netlist->parseVoltageSource($1, $2, $3, $4, $6, $7);
-    }
-    | VOLTAGE_SOURCE node node TYPE_DC value_voltage TYPE_AC value_voltage
-    {
-        printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f)\n", $1, $2, $3, $5, $7);
-        netlist->parseVoltageSource($1, $2, $3, $5, $7, 0);
-    }
-    | VOLTAGE_SOURCE node node TYPE_DC value_voltage TYPE_AC value_voltage value
-    {
-        printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f) Phase(%f)\n", $1, $2, $3, $5, $7, $8);
-        netlist->parseVoltageSource($1, $2, $3, $5, $7, $8);
-    }
-    | VOLTAGE_SOURCE node node function
-    {
-        switch ($4->type) {
+        switch ($6->type) {
             case TOKEN_FUNC_SIN:
-                printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) Sin Function(OffsetVolt(%f) Amplitude(%f) Freq(%e) DelayTime(%e) DampingFactor(%e) PhaseDelay(%f))\n", $1, $2, $3, $4->values[0], $4->values[1], $4->values[2], $4->values[3], $4->values[4], $4->values[5]);
-                netlist->parseVoltageSource($1, $2, $3, *$4);
+                printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f) Phase(%f) Sin Function(OffsetVolt(%f) Amplitude(%f) Freq(%e) DelayTime(%e) DampingFactor(%e) PhaseDelay(%f))\n", $1, $2, $3, $4, $5->at(0), $5->at(1), $6->values[0], $6->values[1], $6->values[2], $6->values[3], $6->values[4], $6->values[5]);
+                netlist->parseVoltageSource($1, $2, $3, $4, $5->at(0), $5->at(1), *$6);
                 break;
             case TOKEN_FUNC_PULSE:
-                printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) Pulse Function(LowVolt(%f) HighVolt(%f) Delaytime(%e) Risetime(%e) Falltime(%e) PulseWidth(%e) Period(%e))\n", $1, $2, $3, $4->values[0], $4->values[1], $4->values[2], $4->values[3], $4->values[4], $4->values[5], $4->values[6]);
-                netlist->parseVoltageSource($1, $2, $3, *$4);
+                printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f) Phase(%f) Pulse Function(LowVolt(%f) HighVolt(%f) Delaytime(%e) Risetime(%e) Falltime(%e) PulseWidth(%e) Period(%e))\n", $1, $2, $3, $4, $5->at(0), $5->at(1), $6->values[0], $6->values[1], $6->values[2], $6->values[3], $6->values[4], $6->values[5], $6->values[6]);
+                netlist->parseVoltageSource($1, $2, $3, $4, $5->at(0), $5->at(1), *$6);
                 break;
             default:
                 printf("!No such function type\n");
@@ -256,50 +234,81 @@ component_voltage_source: VOLTAGE_SOURCE node node value_voltage
     }
 ;
 
-component_current_source: CURRENT_SOURCE node node value_current
+dc_volage_value: value_voltage
     {
-        printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) Value(%f)\n", $1, $2, $3, $4);
-        netlist->parseCurrentSource($1, $2, $3, $4, 0, 0);
+        $$ = $1;
     }
-    | CURRENT_SOURCE node node TYPE_DC value_current
+    | TYPE_DC value_voltage
     {
-        printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) DC Value(%f)\n", $1, $2, $3, $5);
-        netlist->parseCurrentSource($1, $2, $3, $5, 0, 0);
+        $$ = $2;
     }
-    | CURRENT_SOURCE node node value_current TYPE_AC value_current
+    | /* empty */
     {
-        printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f)\n", $1, $2, $3, $4, $6);
-        netlist->parseCurrentSource($1, $2, $3, $4, $6, 0);
+        $$ = 0;
     }
-    | CURRENT_SOURCE node node value_current TYPE_AC value_current value
+;
+
+ac_voltage_value_phase: TYPE_AC value_voltage value_angle
     {
-        printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f) Phase(%f)\n", $1, $2, $3, $4, $6, $7);
-        netlist->parseCurrentSource($1, $2, $3, $4, $6, $7);
+        $$ = new std::vector<double>{$2, $3};
     }
-    | CURRENT_SOURCE node node TYPE_DC value_current TYPE_AC value_current
+    | TYPE_AC value_voltage
     {
-        printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f)\n", $1, $2, $3, $5, $7);
-        netlist->parseCurrentSource($1, $2, $3, $5, $7, 0);
+        $$ = new std::vector<double>{$2, 0};
     }
-    | CURRENT_SOURCE node node TYPE_DC value_current TYPE_AC value_current value
+    | /* empty */
     {
-        printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f) Phase(%f)\n", $1, $2, $3, $5, $7, $8);
-        netlist->parseCurrentSource($1, $2, $3, $5, $7, $8);
+        $$ = new std::vector<double>{0, 0};
     }
-    | CURRENT_SOURCE node node function
+;
+
+component_current_source: CURRENT_SOURCE node node dc_current_value ac_current_value_phase
     {
-        switch ($4->type) {
+        printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f) Phase(%f)\n", $1, $2, $3, $4, $5->at(0), $5->at(1));
+        netlist->parseCurrentSource($1, $2, $3, $4, $5->at(0), $5->at(1));
+    }
+    | CURRENT_SOURCE node node dc_current_value ac_current_value_phase function
+    {
+        switch ($6->type) {
             case TOKEN_FUNC_SIN:
-                printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) Sin Function(OffsetVolt(%f) Amplitude(%f) Freq(%e) DelayTime(%e) DampingFactor(%e) PhaseDelay(%f))\n", $1, $2, $3, $4->values[0], $4->values[1], $4->values[2], $4->values[3], $4->values[4], $4->values[5]);
-                netlist->parseCurrentSource($1, $2, $3, *$4);
+                printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f) Phase(%f) Sin Function(OffsetVolt(%f) Amplitude(%f) Freq(%e) DelayTime(%e) DampingFactor(%e) PhaseDelay(%f))\n", $1, $2, $3, $4, $5->at(0), $5->at(1), $6->values[0], $6->values[1], $6->values[2], $6->values[3], $6->values[4], $6->values[5]);
+                netlist->parseCurrentSource($1, $2, $3, $4, $5->at(0), $5->at(1), *$6);
                 break;
             case TOKEN_FUNC_PULSE:
-                printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) Pulse Function(LowVolt(%f) HighVolt(%f) Delaytime(%e) Risetime(%e) Falltime(%e) PulseWidth(%e) Period(%e))\n", $1, $2, $3, $4->values[0], $4->values[1], $4->values[2], $4->values[3], $4->values[4], $4->values[5], $4->values[6]);
-                netlist->parseCurrentSource($1, $2, $3, *$4);
+                printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) DC Value(%f) AC Value(%f) Phase(%f) Pulse Function(LowVolt(%f) HighVolt(%f) Delaytime(%e) Risetime(%e) Falltime(%e) PulseWidth(%e) Period(%e))\n", $1, $2, $3, $4, $5->at(0), $5->at(1), $6->values[0], $6->values[1], $6->values[2], $6->values[3], $6->values[4], $6->values[5], $6->values[6]);
+                netlist->parseCurrentSource($1, $2, $3, $4, $5->at(0), $5->at(1), *$6);
                 break;
             default:
                 printf("!No such function type\n");
         }
+    }
+;
+
+dc_current_value: value_current
+    {
+        $$ = $1;
+    }
+    | TYPE_DC value_current
+    {
+        $$ = $2;
+    }
+    | /* empty */
+    {
+        $$ = 0;
+    }
+;
+
+ac_current_value_phase: TYPE_AC value_current value_angle
+    {
+        $$ = new std::vector<double>{$2, $3};
+    }
+    | TYPE_AC value_current
+    {
+        $$ = new std::vector<double>{$2, 0};
+    }
+    | /* empty */
+    {
+        $$ = new std::vector<double>{0, 0};
     }
 ;
 
@@ -396,6 +405,16 @@ value_frequency: value
         $$ = $1;
     }
     | VALUE_FREQUENCY
+    {
+        $$ = $1;
+    }
+;
+
+value_angle: value
+    {
+        $$ = $1;    
+    }
+    | VALUE_ANGLE
     {
         $$ = $1;
     }

@@ -7,7 +7,7 @@ QList<QColor> colorCycle = {
     QColor("#9467bd"), QColor("#8c564b"), QColor("#e377c2"), QColor("#7f7f7f"),
     QColor("#bcbd22"), QColor("#17becf")};
 
-void callPlot(ColumnData xdata, std::vector<ColumnData> ydata) {
+void callPlot(ColumnData xdata, std::vector<ColumnData> ydata, const std::string& title) {
     qDebug() << "callPlot()";
     // add two new graphs and set their look:
     QCustomPlot* customPlot =
@@ -133,5 +133,6 @@ void callPlot(ColumnData xdata, std::vector<ColumnData> ydata) {
     // 创建一个窗口，设置其布局，并显示
     QWidget* window = new QWidget;
     window->setLayout(layout);
+    window->setWindowTitle(QString::fromStdString(title));  // 设置窗口标题
     window->show();
 }

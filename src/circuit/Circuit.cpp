@@ -16,6 +16,8 @@ Circuit::~Circuit() {
     for (TranSimulation* sim : tran_simulations) {
         delete sim;
     }
+    delete MNA_T;
+    delete RHS_T;
 }
 
 void Circuit::preProcess() {
@@ -689,7 +691,8 @@ void Circuit::outputResults() {
         ydata_plot = createOutputYData(dc_plot_requests, sim_results);
 
         // plot
-        plotOutputData(xdata, ydata_plot);
+        std::string title = netlist.title + " - DC" + std::to_string(dc_sim_id);
+        plotOutputData(xdata, ydata_plot, title);
 
         ++dc_sim_id;
     }
@@ -714,7 +717,7 @@ void Circuit::outputResults() {
         ydata_print = createOutputYData(ac_print_requests, sim_cresults);
 
         // print
-        printOutputData(xdata, ydata_print, "ac", 0);
+        printOutputData(xdata, ydata_print, "ac", ac_sim_id);
 
         if (ac_plot_requests.empty()) {
             break;
@@ -724,7 +727,8 @@ void Circuit::outputResults() {
         ydata_plot = createOutputYData(ac_plot_requests, sim_cresults);
 
         // plot
-        plotOutputData(xdata, ydata_plot);
+        std::string title = netlist.title + " - AC" + std::to_string(ac_sim_id);
+        plotOutputData(xdata, ydata_plot, title);
 
         ++ac_sim_id;
     }
@@ -748,7 +752,7 @@ void Circuit::outputResults() {
         ydata_print = createOutputYData(tran_print_requests, sim_results);
 
         // print
-        printOutputData(xdata, ydata_print, "tran", 0);
+        printOutputData(xdata, ydata_print, "tran", tran_sim_id);
 
         if (tran_plot_requests.empty()) {
             break;
@@ -758,7 +762,9 @@ void Circuit::outputResults() {
         ydata_plot = createOutputYData(tran_plot_requests, sim_results);
 
         // plot
-        plotOutputData(xdata, ydata_plot);
+        std::string title =
+            netlist.title + " - TRAN" + std::to_string(tran_sim_id);
+        plotOutputData(xdata, ydata_plot, title);
 
         ++tran_sim_id;
     }
@@ -807,11 +813,12 @@ void Circuit::printOutputData(ColumnData& xdata,
 }
 
 void Circuit::plotOutputData(ColumnData& xdata,
-                             std::vector<ColumnData>& ydata) const {
+                             std::vector<ColumnData>& ydata,
+                             const std::string& title) const {
     if (xdata.values.size() != ydata[0].values.size()) {
         qDebug() << "plotOutputData() xdata and ydata size not match!";
         return;
     }
     // call qcustomplot
-    callPlot(xdata, ydata);
+    callPlot(xdata, ydata, title);
 }

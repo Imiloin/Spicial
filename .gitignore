@@ -20,6 +20,9 @@ src/parser/*.output
 src/parser/parser.cpp
 src/parser/scanner.cpp
 
+# plot pdf
+*.pdf
+
 
 
 # C++ objects and libs

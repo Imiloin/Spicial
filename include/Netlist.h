@@ -18,7 +18,7 @@
 
 class Netlist {
    public:
-    Netlist(const std::string& file);
+    Netlist(const std::string& file, const std::string& title = "Circuit");
     ~Netlist();
 
     friend class Circuit;
@@ -95,6 +95,9 @@ class Netlist {
     void parseVoltageSource(const std::string& name,
                             const std::string& nplus,
                             const std::string& nminus,
+                            double dc_voltage,
+                            double ac_magnitude,
+                            double ac_phase,
                             const Function& func);
     // no function
     void parseCurrentSource(const std::string& name,
@@ -107,6 +110,9 @@ class Netlist {
     void parseCurrentSource(const std::string& name,
                             const std::string& nplus,
                             const std::string& nminus,
+                            double dc_current,
+                            double ac_magnitude,
+                            double ac_phase,
                             const Function& func);
 
     void parseDiode(const std::string& name,
@@ -136,6 +142,7 @@ class Netlist {
 
    private:
     std::string file_path;
+    std::string title;
 
     std::list<Component*> components;  // 元件，包括 R, C, L, VCVS, CCCS, VCCS, CCVS, VS, IS, D, M
     std::vector<Model*> models;        // 模型

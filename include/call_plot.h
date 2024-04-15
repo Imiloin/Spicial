@@ -13,6 +13,6 @@
 // Define color cycle
 extern QList<QColor> colorCycle;
 
-void callPlot(ColumnData xdata, std::vector<ColumnData> ydata);
+void callPlot(ColumnData xdata, std::vector<ColumnData> ydata, const std::string& title);
 
 #endif  // SPICIAL_CALL_PLOT_H
