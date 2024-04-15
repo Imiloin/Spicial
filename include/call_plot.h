@@ -1,10 +1,14 @@
 #ifndef SPICIAL_CALL_PLOT_H
 #define SPICIAL_CALL_PLOT_H
 
+#include <QColor>
+#include <QFileDialog>
+#include <QList>
+#include <QMessageBox>
+#include <QPushButton>
+#include <QVBoxLayout>
 #include "Circuit.h"
 #include "qcustomplot.h"
-#include <QColor>
-#include <QList>
 
 // Define color cycle
 extern QList<QColor> colorCycle;

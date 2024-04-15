@@ -109,15 +109,15 @@ arma::vec Simulation::solveOneOP(arma::sp_mat& MNA,
             x += noise;
         } else {
             // 使用阻尼技术，避免振荡解
-            double damping_factor = 0.1;
-            x = damping_factor * x + (1 - damping_factor) * x_previter;
+            // double damping_factor = 0.5;
+            // x = damping_factor * x + (1 - damping_factor) * x_previter;
 
             // x.print("solveOneOP() x:");
             // 检查是否收敛
             arma::vec err = arma::abs(x - x_previter);
             bool status_abs = all(err <= abs_tol);
             bool status_rel = all(err <= rel_tol * arma::abs(x_previter));
-            if (status_abs || status_rel) {  ////////// use || instead of &&
+            if (status_abs && status_rel) {
                 // qDebug() << "solveOneOP() converged, iter: " << iter;
                 return x;
             }
@@ -494,8 +494,8 @@ void TranSimulation::runSimulation() {
         int id_nplus = capacitor->getIdNplus();
         int id_nminus = capacitor->getIdNminus();
         double initial_voltage = capacitor->getInitialVoltage();
-        int id_branch = capacitor->getIdBranch();     
-        
+        int id_branch = capacitor->getIdBranch();
+
         (*MNA_TRAN_0)(id_branch, id_nplus) = 1;
         (*MNA_TRAN_0)(id_branch, id_nminus) = -1;
         (*MNA_TRAN_0)(id_branch, id_branch) = 0;
@@ -558,7 +558,7 @@ void TranSimulation::runSimulation() {
         (*MNA_TRAN_0)(id_branch, id_branch) = 0;
         (*RHS_TRAN_0)(id_branch) = v0;
     }
-  
+
     // exclude ground node
     (*MNA_TRAN_0).shed_row(0);
     (*MNA_TRAN_0).shed_col(0);

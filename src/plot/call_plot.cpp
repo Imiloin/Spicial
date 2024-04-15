@@ -90,4 +90,48 @@ void callPlot(ColumnData xdata, std::vector<ColumnData> ydata) {
     customPlot->legend->setBorderPen(Qt::NoPen);
 
     customPlot->show();
+
+    // 创建一个按钮
+    QPushButton* saveButton =
+        new QPushButton(QCoreApplication::translate("Context", "Save as PDF"));
+    saveButton->setSizePolicy(
+        QSizePolicy::Fixed, QSizePolicy::Fixed);  // 设置按钮的大小策略为 Fixed
+    saveButton->setFixedHeight(30);  // 设置按钮的固定高度为 30
+
+    QObject::connect(saveButton, &QPushButton::clicked, [customPlot]() {
+        // 创建一个文件对话框，让用户选择文件名和目录
+        QString fileName = QFileDialog::getSaveFileName(
+            customPlot, QCoreApplication::translate("Context", "Save File"),
+            ".", QCoreApplication::translate("Context", "PDF Files (*.pdf)"));
+
+        // 如果用户没有取消对话框
+        if (!fileName.isEmpty()) {
+            // 保存图像为 PDF 文件
+            bool success = customPlot->savePdf(fileName);
+
+            // 创建一个消息框，确认用户的选择
+            QMessageBox msgBox;
+            if (success) {
+                msgBox.setText("The file has been saved successfully.");
+            } else {
+                msgBox.setText("Failed to save the file.");
+            }
+            msgBox.exec();
+        }
+    });
+
+    // 创建一个水平布局并添加 saveButton
+    QHBoxLayout* buttonLayout = new QHBoxLayout;
+    buttonLayout->addWidget(saveButton);
+    buttonLayout->addStretch(1);  // 添加一个弹性空间，使按钮对齐到左侧
+
+    // 创建一个布局并添加 customPlot 和 saveButton
+    QVBoxLayout* layout = new QVBoxLayout;
+    layout->addWidget(customPlot);
+    layout->addWidget(saveButton);
+
+    // 创建一个窗口，设置其布局，并显示
+    QWidget* window = new QWidget;
+    window->setLayout(layout);
+    window->show();
 }
