@@ -267,66 +267,106 @@ ACSimulation::ACSimulation(Analysis& analysis_,
     }
 }
 
+arma::cx_vec ACSimulation::solveOneFreq(arma::sp_cx_mat& MNA_AC,
+                                        arma::cx_vec& RHS_AC,
+                                        arma::vec& x_op,
+                                        double freq) const {
+    std::complex<double> j(0, 1);
+
+    for (Capacitor* capacitor : netlist.capacitors) {
+        int id_nplus = capacitor->getIdNplus();
+        int id_nminus = capacitor->getIdNminus();
+        double capacitance = capacitor->getCapacitance();
+
+        MNA_AC(id_nplus, id_nplus) += 2 * M_PI * freq * capacitance * j;
+        MNA_AC(id_nminus, id_nminus) += 2 * M_PI * freq * capacitance * j;
+        MNA_AC(id_nplus, id_nminus) -= 2 * M_PI * freq * capacitance * j;
+        MNA_AC(id_nminus, id_nplus) -= 2 * M_PI * freq * capacitance * j;
+    }
+    for (Inductor* inductor : netlist.inductors) {
+        double inductance = inductor->getInductance();
+        int id_branch = inductor->getIdBranch();
+
+        MNA_AC(id_branch, id_branch) -= 2 * M_PI * freq * inductance * j;
+    }
+    for (Diode* diode : netlist.diodes) {
+        int id_nplus = diode->getIdNplus();
+        int id_nminus = diode->getIdNminus();
+        DiodeModel* model = diode->getModel();
+
+        // 使用 diode 静态工作点
+        double vk = x_op(id_nplus) - x_op(id_nminus);
+        double ik = model->calcCurrentAtVoltage(vk);
+        double gk = model->calcConductanceAtVoltage(vk);
+        double jk = ik - gk * vk;
+
+        MNA_AC(id_nplus, id_nplus) += gk;
+        MNA_AC(id_nplus, id_nminus) -= gk;
+        MNA_AC(id_nminus, id_nminus) += gk;
+        MNA_AC(id_nminus, id_nplus) -= gk;
+        MNA_AC(id_nplus) -= jk;
+        MNA_AC(id_nminus) += jk;
+    }
+
+    // exclude ground node
+    MNA_AC.shed_row(0);
+    MNA_AC.shed_col(0);
+    RHS_AC.shed_row(0);
+
+    // check if the matrix is singular
+    /*
+    arma::cx_mat MNA_AC_dense =
+        arma::conv_to<arma::cx_mat>::from(MNA_AC);
+    if (std::abs(arma::det(MNA_AC_dense)) < 1e-5) {
+        qDebug() << "The matrix MNA_AC is singular.";
+        continue;
+    }
+    */
+
+    // qDebug() << "AC Simulation at frequency: " << freq;
+    // MNA_AC.print("MNA_AC");
+    // RHS_AC.print("RHS_AC");
+
+    arma::cx_vec x;
+    bool status = arma::spsolve(x, MNA_AC, RHS_AC);
+    // printf("status: %d\n", status);
+    if (!status) {
+        qDebug() << "ACSimulation::solveOneFreq() at frequency: " << freq << "solve failed.";
+        arma::vec x_op_zerofill = arma::vec(size(x_op), arma::fill::zeros);
+        return arma::cx_vec(x_op, x_op_zerofill);
+    } else {
+        // x.print("ACSimulation::solveOneFreq() x:");
+        return x;
+    }
+}
+
 void ACSimulation::runSimulation() {
     if (MNA_AC_T == nullptr || RHS_AC_T == nullptr) {
         qDebug() << "MNA_AC_T or RHS_AC_T is nullptr.";
         return;
     }
 
-    std::complex<double> j(0, 1);
     qDebug() << "ACSimulation::runSimulation()";
 
-    // 运行 AC 分析
+    // 先忽略交流信号，求解非线性器件的静态工作点 //
+    arma::vec x_op = *RHS_T;  // (偷懒)直接用 RHS_DC_T 作为默认值
+    x_op.shed_row(0);         // 去掉 ground node
+
+    arma::sp_mat MNA_AC_OP = *MNA_T;
+    arma::vec RHS_AC_OP = *RHS_T;
+
+    x_op = solveOneOP(MNA_AC_OP, RHS_AC_OP, x_op);  // 静态工作点
+
+    // 运行 AC 分析，此时就是线性系统 //
+    arma::cx_vec x;
     for (double freq : analysis.sim_values) {
         sim_value = freq;
 
         arma::sp_cx_mat MNA_AC = *MNA_AC_T;
         arma::cx_vec RHS_AC = *RHS_AC_T;
 
-        for (Capacitor* capacitor : netlist.capacitors) {
-            int id_nplus = capacitor->getIdNplus();
-            int id_nminus = capacitor->getIdNminus();
-            double capacitance = capacitor->getCapacitance();
+        x = solveOneFreq(MNA_AC, RHS_AC, x_op, freq);
 
-            MNA_AC(id_nplus, id_nplus) += 2 * M_PI * freq * capacitance * j;
-            MNA_AC(id_nminus, id_nminus) += 2 * M_PI * freq * capacitance * j;
-            MNA_AC(id_nplus, id_nminus) -= 2 * M_PI * freq * capacitance * j;
-            MNA_AC(id_nminus, id_nplus) -= 2 * M_PI * freq * capacitance * j;
-        }
-        for (Inductor* inductor : netlist.inductors) {
-            double inductance = inductor->getInductance();
-            int id_branch = inductor->getIdBranch();
-
-            MNA_AC(id_branch, id_branch) -= 2 * M_PI * freq * inductance * j;
-        }
-
-        // exclude ground node
-        MNA_AC.shed_row(0);
-        MNA_AC.shed_col(0);
-        RHS_AC.shed_row(0);
-
-        // check if the matrix is singular
-        /*
-        arma::cx_mat MNA_AC_dense =
-            arma::conv_to<arma::cx_mat>::from(MNA_AC);
-        if (std::abs(arma::det(MNA_AC_dense)) < 1e-5) {
-            qDebug() << "The matrix MNA_AC is singular.";
-            continue;
-        }
-        */
-
-        // qDebug() << "AC Simulation at frequency: " << freq;
-        // MNA_AC.print("MNA_AC");
-        // RHS_AC.print("RHS_AC");
-
-        arma::cx_vec x;
-        bool status = arma::spsolve(x, MNA_AC, RHS_AC);
-        // printf("status: %d\n", status);
-        if (!status) {
-            qDebug() << "ACSimulation::runSimulation() solve failed.";
-        } else {
-            // x.print("ACSimulation::runSimulation() x:");
-        }
         sim_cresults.push_back(x);
     }
 }

@@ -74,6 +74,12 @@ class ACSimulation : public Simulation {
                  Nodes& nodes_,
                  Branches& branches_);
 
+    // 求解一个 AC 频率点
+    arma::cx_vec solveOneFreq(arma::sp_cx_mat& MNA_AC,
+                              arma::cx_vec& RHS_AC,
+                              arma::vec& x_op,
+                              double freq) const;  // complex
+
     void runSimulation() override;
 
     const std::vector<arma::cx_vec>& getIterResults();
