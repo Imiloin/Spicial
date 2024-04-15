@@ -247,7 +247,7 @@ component_voltage_source: VOLTAGE_SOURCE node node value_voltage
                 netlist->parseVoltageSource($1, $2, $3, *$4);
                 break;
             case TOKEN_FUNC_PULSE:
-                printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) Pulse Function(LowVolt(%f) HightVolt(%f) Delaytime(%e) Risetime(%e) Falltime(%e) PulseWidth(%e) Period(%e))\n", $1, $2, $3, $4->values[0], $4->values[1], $4->values[2], $4->values[3], $4->values[4], $4->values[5], $4->values[6]);
+                printf("[Component] Source(Voltage Source) Name(%s) N+(%s) N-(%s) Pulse Function(LowVolt(%f) HighVolt(%f) Delaytime(%e) Risetime(%e) Falltime(%e) PulseWidth(%e) Period(%e))\n", $1, $2, $3, $4->values[0], $4->values[1], $4->values[2], $4->values[3], $4->values[4], $4->values[5], $4->values[6]);
                 netlist->parseVoltageSource($1, $2, $3, *$4);
                 break;
             default:
@@ -294,7 +294,7 @@ component_current_source: CURRENT_SOURCE node node value_current
                 netlist->parseCurrentSource($1, $2, $3, *$4);
                 break;
             case TOKEN_FUNC_PULSE:
-                printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) Pulse Function(LowVolt(%f) HightVolt(%f) Delaytime(%e) Risetime(%e) Falltime(%e) PulseWidth(%e) Period(%e))\n", $1, $2, $3, $4->values[0], $4->values[1], $4->values[2], $4->values[3], $4->values[4], $4->values[5], $4->values[6]);
+                printf("[Component] Source(Current Source) Name(%s) N+(%s) N-(%s) Pulse Function(LowVolt(%f) HighVolt(%f) Delaytime(%e) Risetime(%e) Falltime(%e) PulseWidth(%e) Period(%e))\n", $1, $2, $3, $4->values[0], $4->values[1], $4->values[2], $4->values[3], $4->values[4], $4->values[5], $4->values[6]);
                 netlist->parseCurrentSource($1, $2, $3, *$4);
                 break;
             default:

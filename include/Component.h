@@ -286,6 +286,7 @@ class Diode : public Component {
     double initial_voltage;
     int id_nplus;
     int id_nminus;
+    int id_branch;
     DiodeModel* model;
 
    public:
@@ -301,6 +302,7 @@ class Diode : public Component {
     double getInitialVoltage() const { return initial_voltage; }
     int getIdNplus() const { return id_nplus; }
     int getIdNminus() const { return id_nminus; }
+    int getIdBranch() const { return id_branch; }
     DiodeModel* getModel() const;
 };
 

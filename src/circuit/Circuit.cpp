@@ -96,6 +96,7 @@ void Circuit::preProcess() {
                 Diode* diode = dynamic_cast<Diode*>(component);
                 diode->id_nplus = nodes.addNode(diode->nplus);
                 diode->id_nminus = nodes.addNode(diode->nminus);
+                diode->id_branch = branches.addBranch(diode->name);
                 diode->model =
                     dynamic_cast<DiodeModel*>(getModelPtr(diode->modelname));
                 break;
@@ -146,7 +147,8 @@ void Circuit::preProcess() {
                 break;
             }
             case (COMPONENT_DIODE): {
-                // Diode* diode = dynamic_cast<Diode*>(component);
+                Diode* diode = dynamic_cast<Diode*>(component);
+                diode->id_branch += node_num;
                 break;
             }
         }
@@ -303,12 +305,15 @@ void Circuit::generateMNATemplate() {
                 int id_nminus = current_source->getIdNminus();
                 double dc_current = current_source->getDCCurrent();
 
-                (*RHS)(id_nplus) = -dc_current;
-                (*RHS)(id_nminus) = dc_current;
+                (*RHS)(id_nplus) -= dc_current;
+                (*RHS)(id_nminus) += dc_current;
                 break;
             }
             case COMPONENT_DIODE: {
-                // 非线性器件在求解时再处理
+                Diode* diode = dynamic_cast<Diode*>(component);
+                int id_branch = diode->getIdBranch();
+
+                (*MNA)(id_branch, id_branch) = -1;
                 break;
             }
             default: {

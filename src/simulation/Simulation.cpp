@@ -59,6 +59,7 @@ arma::vec Simulation::solveOneOP(arma::sp_mat& MNA,
         for (Diode* diode : netlist.diodes) {
             int id_nplus = diode->getIdNplus();
             int id_nminus = diode->getIdNminus();
+            int id_branch = diode->getIdBranch();
             DiodeModel* model = diode->getModel();
 
             // 从上一轮迭代的解开始迭代
@@ -71,8 +72,12 @@ arma::vec Simulation::solveOneOP(arma::sp_mat& MNA,
             MNA_iter(id_nplus, id_nminus) -= gk;
             MNA_iter(id_nminus, id_nminus) += gk;
             MNA_iter(id_nminus, id_nplus) -= gk;
-            MNA_iter(id_nplus) -= jk;
-            MNA_iter(id_nminus) += jk;
+            RHS_iter(id_nplus) -= jk;
+            RHS_iter(id_nminus) += jk;
+            MNA_iter(id_branch, id_nplus) = gk;
+            MNA_iter(id_branch, id_nminus) = -gk;
+            // MNA_iter(id_branch, id_branch) = -1;
+            RHS_iter(id_branch) = -jk;
         }
 
         // exclude ground node
@@ -304,8 +309,8 @@ arma::cx_vec ACSimulation::solveOneFreq(arma::sp_cx_mat& MNA_AC,
         MNA_AC(id_nplus, id_nminus) -= gk;
         MNA_AC(id_nminus, id_nminus) += gk;
         MNA_AC(id_nminus, id_nplus) -= gk;
-        MNA_AC(id_nplus) -= jk;
-        MNA_AC(id_nminus) += jk;
+        RHS_AC(id_nplus) -= jk;
+        RHS_AC(id_nminus) += jk;
     }
 
     // exclude ground node
@@ -331,7 +336,8 @@ arma::cx_vec ACSimulation::solveOneFreq(arma::sp_cx_mat& MNA_AC,
     bool status = arma::spsolve(x, MNA_AC, RHS_AC);
     // printf("status: %d\n", status);
     if (!status) {
-        qDebug() << "ACSimulation::solveOneFreq() at frequency: " << freq << "solve failed.";
+        qDebug() << "ACSimulation::solveOneFreq() at frequency: " << freq
+                 << "solve failed.";
         arma::vec x_op_zerofill = arma::vec(size(x_op), arma::fill::zeros);
         return arma::cx_vec(x_op, x_op_zerofill);
     } else {
@@ -484,19 +490,19 @@ void TranSimulation::runSimulation() {
     arma::vec* RHS_TRAN_0 = new arma::vec(*RHS_TRAN_T);
 
     for (Capacitor* capacitor : netlist.capacitors) {
+        // 相当于无电流的电压源
         int id_nplus = capacitor->getIdNplus();
         int id_nminus = capacitor->getIdNminus();
         double initial_voltage = capacitor->getInitialVoltage();
-        int id_branch = capacitor->getIdBranch();
-
-        (*MNA_TRAN_0)(id_nplus, id_branch) = 1;
-        (*MNA_TRAN_0)(id_nminus, id_branch) = -1;
+        int id_branch = capacitor->getIdBranch();     
+        
         (*MNA_TRAN_0)(id_branch, id_nplus) = 1;
         (*MNA_TRAN_0)(id_branch, id_nminus) = -1;
         (*MNA_TRAN_0)(id_branch, id_branch) = 0;
         (*RHS_TRAN_0)(id_branch) = initial_voltage;
     }
     for (Inductor* inductor : netlist.inductors) {
+        // 相当于无电压的电流源
         int id_nplus = inductor->getIdNplus();
         int id_nminus = inductor->getIdNminus();
         double initial_current = inductor->getInitialCurrent();
@@ -504,8 +510,8 @@ void TranSimulation::runSimulation() {
 
         (*MNA_TRAN_0)(id_branch, id_nplus) = 0;
         (*MNA_TRAN_0)(id_branch, id_nminus) = 0;
-        (*MNA_TRAN_0)(id_branch, id_branch) = 1;
-        (*RHS_TRAN_0)(id_branch) = initial_current;
+        (*MNA_TRAN_0)(id_branch, id_branch) = -1;
+        (*RHS_TRAN_0)(id_branch) = -initial_current;
     }
     for (VoltageSource* voltage_source : netlist.voltage_sources) {
         if (voltage_source->getFunction() == nullptr) {
@@ -530,13 +536,52 @@ void TranSimulation::runSimulation() {
         (*RHS_TRAN_0)(id_nplus) = -current_0;
         (*RHS_TRAN_0)(id_nminus) = current_0;
     }
-    // diode IC are not considered here
+    for (Diode* diode : netlist.diodes) {
+        // 已知了起始电压，就已知起始电流，其电压电流均已知
+        int id_nplus = diode->getIdNplus();
+        int id_nminus = diode->getIdNminus();
+        int id_branch = diode->getIdBranch();
+        DiodeModel* model = diode->getModel();
 
-    arma::vec x_0minus = *RHS_TRAN_0;  // (偷懒)直接用 RHS_TRAN_0 作为默认值
-    x_0minus.shed_row(0);              // 去掉 ground node
+        double v0 = diode->getInitialVoltage();
+        double i0 = model->calcCurrentAtVoltage(v0);
+        double g0 = model->calcConductanceAtVoltage(v0);
+        double j0 = i0 - g0 * v0;
+
+        (*RHS_TRAN_0)(id_nplus) -= j0;
+        (*RHS_TRAN_0)(id_nminus) += j0;
+
+        (*MNA_TRAN_0)(id_nplus, id_branch) = 1;
+        (*MNA_TRAN_0)(id_nminus, id_branch) = -1;
+        (*MNA_TRAN_0)(id_branch, id_nplus) = 1;
+        (*MNA_TRAN_0)(id_branch, id_nminus) = -1;
+        (*MNA_TRAN_0)(id_branch, id_branch) = 0;
+        (*RHS_TRAN_0)(id_branch) = v0;
+    }
+  
+    // exclude ground node
+    (*MNA_TRAN_0).shed_row(0);
+    (*MNA_TRAN_0).shed_col(0);
+    (*RHS_TRAN_0).shed_row(0);
+    // check if the matrix is singular
+    if (arma::det(arma::mat(*MNA_TRAN_0)) == 0) {
+        qDebug() << "Solving MNA_TRAN_0 and RHS_TRAN_0";
+        qDebug() << "The matrix is singular after shedding the first "
+                    "row and column, cannot solve the system.";
+        (*MNA_TRAN_0).print("MNA_TRAN_0");
+        (*RHS_TRAN_0).print("RHS_TRAN_0");
+        return;
+    }
 
     sim_value = 0;
-    x = solveOneOP(*MNA_TRAN_0, *RHS_TRAN_0, x_0minus);
+    bool status = arma::spsolve(x, (*MNA_TRAN_0), (*RHS_TRAN_0));
+    // printf("status: %d\n", status);
+    if (!status) {
+        qDebug() << "TranSimulation::runSimulation() t = 0 solve failed.";
+        (*MNA_TRAN_0).print("MNA_TRAN_0");
+        (*RHS_TRAN_0).print("RHS_TRAN_0");
+        return;
+    }
     if (tstart == 0) {
         sim_results.push_back(x);  // time = 0 的解
     }
