@@ -199,17 +199,17 @@ void Circuit::generateMNATemplate() {
             }
             case COMPONENT_CAPACITOR: {
                 Capacitor* capacitor = dynamic_cast<Capacitor*>(component);
-                int id_nplus = capacitor->getIdNplus();
-                int id_nminus = capacitor->getIdNminus();
+                // int id_nplus = capacitor->getIdNplus();
+                // int id_nminus = capacitor->getIdNminus();
                 int id_branch = capacitor->getIdBranch();
-                double capacitance = capacitor->getCapacitance();
+                // double capacitance = capacitor->getCapacitance();
 
-                (*MNA)(id_nplus, id_nplus) += 0 * capacitance;
-                (*MNA)(id_nminus, id_nminus) += 0 * capacitance;
-                (*MNA)(id_nplus, id_nminus) -= 0 * capacitance;
-                (*MNA)(id_nminus, id_nplus) -= 0 * capacitance;
-                (*MNA)(id_branch, id_nplus) = 0 * capacitance;
-                (*MNA)(id_branch, id_nminus) = -0 * capacitance;
+                // (*MNA)(id_nplus, id_nplus) += 0 * capacitance;
+                // (*MNA)(id_nminus, id_nminus) += 0 * capacitance;
+                // (*MNA)(id_nplus, id_nminus) -= 0 * capacitance;
+                // (*MNA)(id_nminus, id_nplus) -= 0 * capacitance;
+                // (*MNA)(id_branch, id_nplus) = 0 * capacitance;
+                // (*MNA)(id_branch, id_nminus) = -0 * capacitance;
                 (*MNA)(id_branch, id_branch) = -1;
                 break;
             }
@@ -361,7 +361,7 @@ void Circuit::printModels() const {
 }
 
 void Circuit::runSimulations() {
-    qDebug() << "runSimulations()";
+    // qDebug() << "runSimulations()";
     for (Analysis* analysis : netlist.analyses) {
         switch (analysis->analysis_type) {
             case ANALYSIS_OP: {
@@ -788,6 +788,7 @@ void Circuit::printOutputData(ColumnData& xdata,
     std::ofstream file(csv_file_path);
 
     // 打印并写入 CSV 文件的头部
+    std::cout << "----------------PRINT---------------" << std::endl;
     std::cout << xdata.name;
     file << xdata.name;
     for (const auto& column : ydata) {
@@ -808,6 +809,7 @@ void Circuit::printOutputData(ColumnData& xdata,
         std::cout << "\n";
         file << "\n";
     }
+    std::cout << "----------------PRINT---------------" << std::endl;
 
     file.close();
 }

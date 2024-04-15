@@ -8,7 +8,7 @@ QList<QColor> colorCycle = {
     QColor("#bcbd22"), QColor("#17becf")};
 
 void callPlot(ColumnData xdata, std::vector<ColumnData> ydata, const std::string& title) {
-    qDebug() << "callPlot()";
+    // qDebug() << "callPlot()";
     // add two new graphs and set their look:
     QCustomPlot* customPlot =
         new QCustomPlot;  // Declare and define the customPlot object

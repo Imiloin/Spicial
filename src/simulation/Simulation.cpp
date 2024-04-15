@@ -496,6 +496,8 @@ void TranSimulation::runSimulation() {
         double initial_voltage = capacitor->getInitialVoltage();
         int id_branch = capacitor->getIdBranch();
 
+        (*MNA_TRAN_0)(id_nplus, id_branch) = 1;
+        (*MNA_TRAN_0)(id_nminus, id_branch) = -1;
         (*MNA_TRAN_0)(id_branch, id_nplus) = 1;
         (*MNA_TRAN_0)(id_branch, id_nminus) = -1;
         (*MNA_TRAN_0)(id_branch, id_branch) = 0;

@@ -69,6 +69,12 @@ void MainWindow::createActions() {
     pasteAction->setStatusTip(tr("Paste clipboard to selection"));
     connect(pasteAction, SIGNAL(triggered()), textEdit, SLOT(paste()));
 
+    /** @brief parse action */
+    parseAction = new QAction(QIcon(":/icons/parse"), tr("Parse"), this);
+    parseAction->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_P);
+    parseAction->setStatusTip(tr("Parse"));
+    connect(parseAction, SIGNAL(triggered()), this, SLOT(slotParse()));
+    
     /** @brief debug action */
     debugAction = new QAction(QIcon(":/icons/debug"), tr("Debug"), this);
     debugAction->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_D);
@@ -91,6 +97,8 @@ void MainWindow::createActions() {
 void MainWindow::createMenus() {
     fileMenu = menuBar()->addMenu(tr("File"));
     editMenu = menuBar()->addMenu(tr("Edit"));
+    simulateMenu = menuBar()->addMenu(tr("Simulate"));
+    debugMenu = menuBar()->addMenu(tr("Debug"));
 
     fileMenu->addAction(fileNewAction);
     fileMenu->addSeparator();  /// Add separator between 2 actions.
@@ -100,6 +108,11 @@ void MainWindow::createMenus() {
     editMenu->addAction(copyAction);
     editMenu->addAction(cutAction);
     editMenu->addAction(pasteAction);
+
+    simulateMenu->addAction(simulateAction);
+
+    debugMenu->addAction(parseAction);
+    debugMenu->addAction(debugAction);
 }
 
 void MainWindow::createToolBars() {
@@ -120,6 +133,7 @@ void MainWindow::createToolBars() {
 
     simulateTool->addAction(simulateAction);
 
+    debugTool->addAction(parseAction);
     debugTool->addAction(debugAction);
 
     demoTool->addAction(helloAction);
@@ -232,8 +246,9 @@ void MainWindow::slotSimulate() {
                  "-----------"
               << std::endl;
 
-    Netlist* netlist = callNetlistParser(fileName.toStdString().c_str());
-    if (netlist == nullptr) {
+    std::unique_ptr<Netlist> netlist(  // use unique_ptr to avoid memory leak.
+        callNetlistParser(fileName.toStdString().c_str()));
+    if (!netlist) {
         qDebug() << "Call parser but return nullptr\n";
         return;
     }
@@ -247,8 +262,25 @@ void MainWindow::slotSimulate() {
     std::cout << "-------------------------------Simulation--------------------"
                  "-----------"
               << std::endl;
+}
 
-    delete netlist;
+void MainWindow::slotParse() {
+    qDebug() << "slotParse()" << fileName;
+
+    std::cout << "-------------------------------Parsing--------------------"
+                 "-----------"
+              << std::endl;
+
+    std::unique_ptr<Netlist> netlist(  // use unique_ptr to avoid memory leak.
+        callNetlistParser(fileName.toStdString().c_str()));
+    if (!netlist) {
+        qDebug() << "Call parser but return nullptr\n";
+        return;
+    }
+
+    std::cout << "-------------------------------Parsing--------------------"
+                 "-----------"
+              << std::endl;
 }
 
 void MainWindow::slotDebug() {
@@ -258,8 +290,9 @@ void MainWindow::slotDebug() {
                  "*********"
               << std::endl;
 
-    Netlist* netlist = callNetlistParser(fileName.toStdString().c_str());
-    if (netlist == nullptr) {
+    std::unique_ptr<Netlist> netlist(
+        callNetlistParser(fileName.toStdString().c_str()));
+    if (!netlist) {
         qDebug() << "Call parser but return nullptr\n";
         return;
     }
@@ -278,11 +311,9 @@ void MainWindow::slotDebug() {
 
     circuit.runSimulations();
 
-    circuit.outputResults();  
+    circuit.outputResults();
 
     std::cout << "********************************DEBUG************************"
                  "*********"
               << std::endl;
-
-    delete netlist;
 }

@@ -36,8 +36,10 @@ public slots:
     void slotNewFile();
     void slotOpenFile();
     void slotSaveFile();
-    void slotDebug();
     void slotSimulate();
+    void slotParse();
+    void slotDebug();
+    
 
     /** @brief slot of hello world demo */
     void slotHelloWorld();
@@ -46,6 +48,8 @@ public slots:
 private:
     QMenu    *fileMenu;
     QMenu    *editMenu;
+    QMenu    *simulateMenu;
+    QMenu    *debugMenu;
 
     QToolBar *fileTool;
     QToolBar *editTool;
@@ -61,6 +65,8 @@ private:
     QAction *pasteAction;
 
     QAction *simulateAction;
+
+    QAction *parseAction;
     QAction *debugAction;
 
     QAction *helloAction; // hello world demo
