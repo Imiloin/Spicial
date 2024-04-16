@@ -510,9 +510,13 @@ void TranSimulation::runSimulation() {
         double initial_current = inductor->getInitialCurrent();
         int id_branch = inductor->getIdBranch();
 
+        (*MNA_TRAN_0)(id_nplus, id_branch) = 0;
+        (*MNA_TRAN_0)(id_nminus, id_branch) = 0;
         (*MNA_TRAN_0)(id_branch, id_nplus) = 0;
         (*MNA_TRAN_0)(id_branch, id_nminus) = 0;
         (*MNA_TRAN_0)(id_branch, id_branch) = -1;
+        (*RHS_TRAN_0)(id_nplus) = -initial_current;
+        (*RHS_TRAN_0)(id_nminus) = initial_current;
         (*RHS_TRAN_0)(id_branch) = -initial_current;
     }
     for (VoltageSource* voltage_source : netlist.voltage_sources) {
@@ -539,7 +543,7 @@ void TranSimulation::runSimulation() {
         (*RHS_TRAN_0)(id_nminus) = current_0;
     }
     for (Diode* diode : netlist.diodes) {
-        // 已知了起始电压，就已知起始电流，其电压电流均已知
+        // 已知了起始电压，就已知静态工作点，相当于电流源与电阻并联
         int id_nplus = diode->getIdNplus();
         int id_nminus = diode->getIdNminus();
         int id_branch = diode->getIdBranch();
@@ -550,15 +554,19 @@ void TranSimulation::runSimulation() {
         double g0 = model->calcConductanceAtVoltage(v0);
         double j0 = i0 - g0 * v0;
 
+        (*MNA_TRAN_0)(id_nplus, id_nplus) += g0;
+        (*MNA_TRAN_0)(id_nplus, id_nminus) -= g0;
+        (*MNA_TRAN_0)(id_nminus, id_nminus) += g0;
+        (*MNA_TRAN_0)(id_nminus, id_nplus) -= g0;
         (*RHS_TRAN_0)(id_nplus) -= j0;
         (*RHS_TRAN_0)(id_nminus) += j0;
 
-        (*MNA_TRAN_0)(id_nplus, id_branch) = 1;
-        (*MNA_TRAN_0)(id_nminus, id_branch) = -1;
-        (*MNA_TRAN_0)(id_branch, id_nplus) = 1;
-        (*MNA_TRAN_0)(id_branch, id_nminus) = -1;
-        (*MNA_TRAN_0)(id_branch, id_branch) = 0;
-        (*RHS_TRAN_0)(id_branch) = v0;
+        // (*MNA_TRAN_0)(id_nplus, id_branch) = 0;
+        // (*MNA_TRAN_0)(id_nminus, id_branch) = 0;
+        // (*MNA_TRAN_0)(id_branch, id_nplus) = 0;
+        // (*MNA_TRAN_0)(id_branch, id_nminus) = 0;
+        (*MNA_TRAN_0)(id_branch, id_branch) = -1;
+        (*RHS_TRAN_0)(id_branch) = -i0;
     }
 
     // exclude ground node

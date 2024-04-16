@@ -7,7 +7,9 @@ QList<QColor> colorCycle = {
     QColor("#9467bd"), QColor("#8c564b"), QColor("#e377c2"), QColor("#7f7f7f"),
     QColor("#bcbd22"), QColor("#17becf")};
 
-void callPlot(ColumnData xdata, std::vector<ColumnData> ydata, const std::string& title) {
+void callPlot(ColumnData xdata,
+              std::vector<ColumnData> ydata,
+              const std::string& title) {
     // qDebug() << "callPlot()";
     // add two new graphs and set their look:
     QCustomPlot* customPlot =
@@ -98,14 +100,22 @@ void callPlot(ColumnData xdata, std::vector<ColumnData> ydata, const std::string
         QSizePolicy::Fixed, QSizePolicy::Fixed);  // 设置按钮的大小策略为 Fixed
     saveButton->setFixedHeight(30);  // 设置按钮的固定高度为 30
 
-    QObject::connect(saveButton, &QPushButton::clicked, [customPlot]() {
+    QObject::connect(saveButton, &QPushButton::clicked, [title,customPlot]() {
+        QString defaultFileName = QString::fromStdString(title) + ".pdf";
         // 创建一个文件对话框，让用户选择文件名和目录
         QString fileName = QFileDialog::getSaveFileName(
             customPlot, QCoreApplication::translate("Context", "Save File"),
-            ".", QCoreApplication::translate("Context", "PDF Files (*.pdf)"));
+            "./" + defaultFileName, QCoreApplication::translate("Context", "PDF Files (*.pdf)"));
 
         // 如果用户没有取消对话框
         if (!fileName.isEmpty()) {
+            // 检查文件名是否包含 .pdf 后缀
+            QFileInfo fileInfo(fileName);
+            if (fileInfo.suffix().toLower() != "pdf") {
+                // 如果不包含，添加 .pdf 后缀
+                fileName.append(".pdf");
+            }
+
             // 保存图像为 PDF 文件
             bool success = customPlot->savePdf(fileName);
 

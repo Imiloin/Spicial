@@ -781,8 +781,6 @@ END              [\.][Ee][Nn][Dd]
     free(temp);
     if ((--current_token_needed) == 0) {
         switch(current_line_type) {
-            case COMPONENT_CAPACITOR:
-                BEGIN(KEYWORD_PARAM); optional_token = true; break;
             case COMPONENT_VOLTAGE_SOURCE:
                 BEGIN(ANALYSIS_TYPE); optional_token = true; break;
             case ANALYSIS_DC:
@@ -825,6 +823,15 @@ END              [\.][Ee][Nn][Dd]
     char* temp = strndup(yytext, yyleng - 1);
     yylval->f = parseValue(temp);
     free(temp);
+    if ((--current_token_needed) == 0) {
+        switch(current_line_type) {
+            case COMPONENT_INDUCTOR:
+                BEGIN(KEYWORD_PARAM); optional_token = true; break;
+            default:
+                printf("Current line type is %d\n", current_line_type);
+                printf("ERROR_UNKOWN_LINE_TYPE when parsing VALUES\n");
+        }
+    }
     return token::VALUE_INDUCTANCE;
 }
 {VALUE_TIME} {

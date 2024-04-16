@@ -224,6 +224,7 @@ void Circuit::generateMNATemplate() {
                 (*MNA)(id_nminus, id_branch) = -1;
                 (*MNA)(id_branch, id_nplus) = 1;
                 (*MNA)(id_branch, id_nminus) = -1;
+                // (*MNA)(id_branch, id_branch) = -0 * inductance;
                 break;
             }
             case COMPONENT_VCVS: {

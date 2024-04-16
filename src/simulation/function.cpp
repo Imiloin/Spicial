@@ -1,4 +1,5 @@
 #include "function.h"
+#include <QDebug>
 
 double calcFunctionAtTime(const Function* func,
                           double time,
@@ -35,12 +36,12 @@ double calcFunctionAtTime(const Function* func,
             double v1 = func->values[0];
             double v2 = func->values[1];
             double td = func->values[2];                    // default 0
-            double tr = std::max(func->values[3], tstep);   // default tstep
-            double tf = std::max(func->values[4], tstep);   // default tstep
-            double pw = std::max(func->values[5], tstop);   // default tstop
-            double per = std::max(func->values[6], tstop);  // default tstop
+            double tr = func->values[3] ? func->values[3] : tstep;   // default tstep
+            double tf = func->values[4] ? func->values[4] : tstep;   // default tstep
+            double pw = func->values[5] ? func->values[5] : tstep;   // default tstop
+            double per = func->values[6] ? func->values[6] : tstop;  // default tstop
 
-            time = fmod(time, per);
+            time = fmod(time, per); qDebug() << "time: " << time;
             if (time <= td) {
                 return v1;
             } else if (time <= td + tr) {
