@@ -73,7 +73,8 @@ ALPHANUM  [A-Za-z_0-9]
 STRING    {ALPHA}{ALPHANUM}+
 INTEGER   {DIGIT}+
 /* FLOAT     [\-]?{DIGIT}+"."{DIGIT}+([Ee][\+\-]?{DIGIT}+)? */
-FLOAT     [\-]?({DIGIT}?"."{DIGIT}*|{DIGIT}*)([Ee][\+\-]?{DIGIT}+)?
+/* FLOAT     [\-]?({DIGIT}?"."{DIGIT}*|{DIGIT}*)([Ee][\+\-]?{DIGIT}+)? */
+FLOAT     [\-]?(({DIGIT}+"."{DIGIT}*)|("."{DIGIT}+))([Ee][\+\-]?{DIGIT}+)?
 
 /* components */
 RESISTOR         [Rr]{ALPHANUM}+
@@ -196,7 +197,7 @@ END              [\.][Ee][Nn][Dd]
     first_token_of_current_line = strdup(yytext); 
     yylval->s = copyStrToupper(yytext); 
     current_line_type = COMPONENT_CCCS;
-    current_token_needed = 3;
+    current_token_needed = 2;
     return token::CCCS;
 }
 {VCCS} {
@@ -212,7 +213,7 @@ END              [\.][Ee][Nn][Dd]
     first_token_of_current_line = strdup(yytext); 
     yylval->s = copyStrToupper(yytext); 
     current_line_type = COMPONENT_CCVS;
-    current_token_needed = 3;
+    current_token_needed = 2;
     return token::CCVS;
 }
 {VOLTAGE_SOURCE} {
@@ -311,10 +312,11 @@ END              [\.][Ee][Nn][Dd]
             case COMPONENT_CAPACITOR:
             case COMPONENT_INDUCTOR:
             case COMPONENT_VCVS:
-            case COMPONENT_CCCS:
             case COMPONENT_VCCS:
-            case COMPONENT_CCVS:
                 BEGIN(VALUES); current_token_needed = 1; break;
+            case COMPONENT_CCCS:
+            case COMPONENT_CCVS:
+                BEGIN(NODES_BRANCHES); current_token_needed = 1; uppercasing = true; break;
             case COMPONENT_VOLTAGE_SOURCE:
                 BEGIN(ANALYSIS_TYPE); optional_token = true; break;
             case COMPONENT_CURRENT_SOURCE:
@@ -336,10 +338,11 @@ END              [\.][Ee][Nn][Dd]
             case COMPONENT_CAPACITOR:
             case COMPONENT_INDUCTOR:
             case COMPONENT_VCVS:
-            case COMPONENT_CCCS:
             case COMPONENT_VCCS:
-            case COMPONENT_CCVS:
                 BEGIN(VALUES); current_token_needed = 1; break;
+            case COMPONENT_CCCS:
+            case COMPONENT_CCVS:
+                BEGIN(NODES_BRANCHES); current_token_needed = 1; uppercasing = true; break;
             case COMPONENT_VOLTAGE_SOURCE:
                 BEGIN(ANALYSIS_TYPE); optional_token = true; break;
             case COMPONENT_CURRENT_SOURCE:
@@ -636,6 +639,9 @@ END              [\.][Ee][Nn][Dd]
     }
     if ((--current_token_needed) == 0) {
         switch(current_line_type) {
+            case COMPONENT_CCCS:
+            case COMPONENT_CCVS:
+                BEGIN(VALUES); current_token_needed = 1; break;
             case ANALYSIS_PRINT:
             case ANALYSIS_PLOT:
                 BEGIN(VARIABLES); current_token_needed = 1; break;
@@ -650,6 +656,9 @@ END              [\.][Ee][Nn][Dd]
     yylval->s = copyStrTolower(yytext); 
     if ((--current_token_needed) == 0) {
         switch(current_line_type) {
+            case COMPONENT_CCCS:
+            case COMPONENT_CCVS:
+                BEGIN(VALUES); current_token_needed = 1; break;
             case ANALYSIS_PRINT:
             case ANALYSIS_PLOT:
                 BEGIN(VARIABLES); current_token_needed = 1; break;
