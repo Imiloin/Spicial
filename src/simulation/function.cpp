@@ -35,13 +35,17 @@ double calcFunctionAtTime(const Function* func,
         case TOKEN_FUNC_PULSE: {
             double v1 = func->values[0];
             double v2 = func->values[1];
-            double td = func->values[2];                    // default 0
-            double tr = func->values[3] ? func->values[3] : tstep;   // default tstep
-            double tf = func->values[4] ? func->values[4] : tstep;   // default tstep
-            double pw = func->values[5] ? func->values[5] : tstep;   // default tstop
-            double per = func->values[6] ? func->values[6] : tstop;  // default tstop
+            double td = func->values[2];  // default 0
+            double tr =
+                func->values[3] ? func->values[3] : tstep;  // default tstep
+            double tf =
+                func->values[4] ? func->values[4] : tstep;  // default tstep
+            double pw =
+                func->values[5] ? func->values[5] : tstop;  // default tstop
+            double per =
+                func->values[6] ? func->values[6] : tstop;  // default tstop
 
-            time = fmod(time, per); qDebug() << "time: " << time;
+            time = fmod(time, per);
             if (time <= td) {
                 return v1;
             } else if (time <= td + tr) {

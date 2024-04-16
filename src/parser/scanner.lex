@@ -73,7 +73,7 @@ ALPHANUM  [A-Za-z_0-9]
 STRING    {ALPHA}{ALPHANUM}+
 INTEGER   {DIGIT}+
 /* FLOAT     [\-]?{DIGIT}+"."{DIGIT}+([Ee][\+\-]?{DIGIT}+)? */
-FLOAT     [\-]?({DIGIT}+"."{DIGIT}*|{DIGIT}*)([Ee][\+\-]?{DIGIT}+)?
+FLOAT     [\-]?({DIGIT}?"."{DIGIT}*|{DIGIT}*)([Ee][\+\-]?{DIGIT}+)?
 
 /* components */
 RESISTOR         [Rr]{ALPHANUM}+
