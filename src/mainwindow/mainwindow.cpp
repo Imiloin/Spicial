@@ -33,17 +33,17 @@ MainWindow::~MainWindow() {}
  * @brief Define and connect the actions.
  */
 void MainWindow::createActions() {
-    /** @brief file open action */
-    fileOpenAction = new QAction(QIcon(":/icons/fileopen"), tr("open"), this);
-    fileOpenAction->setShortcut(Qt::CTRL + Qt::Key_O);
-    fileOpenAction->setStatusTip(tr("Open file"));
-    connect(fileOpenAction, SIGNAL(triggered()), this, SLOT(slotOpenFile()));
-
     /** @brief file new action */
     fileNewAction = new QAction(QIcon(":/icons/filenew"), tr("New"), this);
     fileNewAction->setShortcut(Qt::CTRL + Qt::Key_N);
     fileNewAction->setStatusTip(tr("New file"));
     connect(fileNewAction, SIGNAL(triggered()), this, SLOT(slotNewFile()));
+
+    /** @brief file open action */
+    fileOpenAction = new QAction(QIcon(":/icons/fileopen"), tr("Open"), this);
+    fileOpenAction->setShortcut(Qt::CTRL + Qt::Key_O);
+    fileOpenAction->setStatusTip(tr("Open file"));
+    connect(fileOpenAction, SIGNAL(triggered()), this, SLOT(slotOpenFile()));   
 
     /** @brief save file action */
     fileSaveAction = new QAction(QPixmap(":/icons/filesave"), tr("Save"), this);
@@ -51,17 +51,17 @@ void MainWindow::createActions() {
     fileSaveAction->setStatusTip(tr("Save file"));
     connect(fileSaveAction, SIGNAL(triggered()), this, SLOT(slotSaveFile()));
 
-    /** @brief cut action */
-    cutAction = new QAction(QIcon(":/icons/editcut"), tr("Cut"), this);
-    cutAction->setShortcut(Qt::CTRL + Qt::Key_X);
-    cutAction->setStatusTip(tr("Cut to clipboard"));
-    connect(cutAction, SIGNAL(triggered()), textEdit, SLOT(cut()));
-
     /** @brief copy action */
     copyAction = new QAction(QIcon(":/icons/editcopy"), tr("Copy"), this);
     copyAction->setShortcut(Qt::CTRL + Qt::Key_C);
     copyAction->setStatusTip(tr("Copy to clipboard"));
     connect(copyAction, SIGNAL(triggered()), textEdit, SLOT(copy()));
+    
+    /** @brief cut action */
+    cutAction = new QAction(QIcon(":/icons/editcut"), tr("Cut"), this);
+    cutAction->setShortcut(Qt::CTRL + Qt::Key_X);
+    cutAction->setStatusTip(tr("Cut to clipboard"));
+    connect(cutAction, SIGNAL(triggered()), textEdit, SLOT(cut()));
 
     /** @brief paste action */
     pasteAction = new QAction(QIcon(":/icons/editpaste"), tr("Paste"), this);
@@ -69,22 +69,24 @@ void MainWindow::createActions() {
     pasteAction->setStatusTip(tr("Paste clipboard to selection"));
     connect(pasteAction, SIGNAL(triggered()), textEdit, SLOT(paste()));
 
+    /** @brief simulate action */
+    simulateAction =
+        new QAction(QIcon(":/icons/simulate"), tr("simulate"), this);
+    simulateAction->setShortcut(Qt::CTRL + Qt::Key_R);
+    simulateAction->setToolTip(tr("Do netlist simulation"));
+    connect(simulateAction, SIGNAL(triggered()), this, SLOT(slotSimulate()));
+
     /** @brief parse action */
     parseAction = new QAction(QIcon(":/icons/parse"), tr("Parse"), this);
+    parseAction->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_P);
     parseAction->setStatusTip(tr("Parse"));
     connect(parseAction, SIGNAL(triggered()), this, SLOT(slotParse()));
     
     /** @brief debug action */
     debugAction = new QAction(QIcon(":/icons/debug"), tr("Debug"), this);
+    debugAction->setShortcut(Qt::Key_F11);
     debugAction->setStatusTip(tr("Debug"));
     connect(debugAction, SIGNAL(triggered()), this, SLOT(slotDebug()));
-
-    /** @brief simulate action */
-    simulateAction =
-        new QAction(QIcon(":/icons/simulate"), tr("simulate"), this);
-    simulateAction->setShortcut(Qt::CTRL + Qt::ALT + Qt::Key_N);
-    simulateAction->setToolTip(tr("Do netlist simulation"));
-    connect(simulateAction, SIGNAL(triggered()), this, SLOT(slotSimulate()));
 }
 
 void MainWindow::createMenus() {

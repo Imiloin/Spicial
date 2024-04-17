@@ -255,11 +255,12 @@ ACSimulation::ACSimulation(Analysis& analysis_,
 
     // 生成 AC 状态 MNA 模板
     for (VoltageSource* voltage_source : netlist.voltage_sources) {
+        double dc_voltage = voltage_source->getDCVoltage();
         double ac_magnitude = voltage_source->getACMagnitude();
         double ac_phase = voltage_source->getACPhase() / 180 * M_PI;
         int id_branch = voltage_source->getIdBranch();
 
-        (*RHS_AC_T)(id_branch) = ac_magnitude * exp(j * ac_phase);
+        (*RHS_AC_T)(id_branch) = dc_voltage + ac_magnitude * exp(j * ac_phase);
     }
     for (CurrentSource* current_source : netlist.current_sources) {
         int id_nplus = current_source->getIdNplus();
@@ -267,8 +268,10 @@ ACSimulation::ACSimulation(Analysis& analysis_,
         double ac_magnitude = current_source->getACMagnitude();
         double ac_phase = current_source->getACPhase() / 180 * M_PI;
 
-        (*RHS_AC_T)(id_nplus) = -ac_magnitude * exp(j * ac_phase);
-        (*RHS_AC_T)(id_nminus) = ac_magnitude * exp(j * ac_phase);
+        std::complex<double> ac_current = ac_magnitude * exp(j * ac_phase);
+
+        (*RHS_AC_T)(id_nplus) -= ac_current;
+        (*RHS_AC_T)(id_nminus) += ac_current;
     }
 }
 
