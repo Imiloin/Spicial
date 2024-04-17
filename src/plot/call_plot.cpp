@@ -51,7 +51,7 @@ void callPlot(ColumnData xdata,
     std::nth_element(xCopy.begin(), xCopy.begin() + xCopy.size() / 2,
                      xCopy.end());
     double median = xCopy[xCopy.size() / 2];
-    if (xMax / median > 100) {
+    if (xMax / median >= 10) {
         customPlot->xAxis->setScaleType(QCPAxis::stLogarithmic);
         QSharedPointer<QCPAxisTickerLog> logTicker(new QCPAxisTickerLog);
         customPlot->xAxis->setTicker(logTicker);

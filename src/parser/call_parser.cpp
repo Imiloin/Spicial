@@ -26,7 +26,7 @@ Netlist *callNetlistParser(const char* fileName) {
     fgets(ch_title, 128, yyin);
     std::string title(ch_title);
     title.erase(title.find_last_not_of("\n\r") + 1);  // 去除末尾的换行符
-    printf("[Title] %s", title.c_str());
+    printf("[Title] %s\n", title.c_str());
 
     // create netlist instance
     Netlist *netlist = new Netlist(fileName, title);
