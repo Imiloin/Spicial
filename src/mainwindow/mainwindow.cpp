@@ -71,25 +71,18 @@ void MainWindow::createActions() {
 
     /** @brief parse action */
     parseAction = new QAction(QIcon(":/icons/parse"), tr("Parse"), this);
-    parseAction->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_P);
     parseAction->setStatusTip(tr("Parse"));
     connect(parseAction, SIGNAL(triggered()), this, SLOT(slotParse()));
     
     /** @brief debug action */
     debugAction = new QAction(QIcon(":/icons/debug"), tr("Debug"), this);
-    debugAction->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_D);
     debugAction->setStatusTip(tr("Debug"));
     connect(debugAction, SIGNAL(triggered()), this, SLOT(slotDebug()));
 
-    /** @brief demo to use QLabel to print Hello World*/
-    helloAction = new QAction(tr("hello world"), this);
-    helloAction->setToolTip(tr("use QLabel to print Hello World"));
-    connect(helloAction, SIGNAL(triggered()), this, SLOT(slotHelloWorld()));
-
-    // parse netlist action
+    /** @brief simulate action */
     simulateAction =
         new QAction(QIcon(":/icons/simulate"), tr("simulate"), this);
-    debugAction->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_P);
+    simulateAction->setShortcut(Qt::CTRL + Qt::ALT + Qt::Key_N);
     simulateAction->setToolTip(tr("Do netlist simulation"));
     connect(simulateAction, SIGNAL(triggered()), this, SLOT(slotSimulate()));
 }
@@ -121,7 +114,6 @@ void MainWindow::createToolBars() {
     editTool = addToolBar(tr("Edit"));
     simulateTool = addToolBar(tr("Simulate"));
     debugTool = addToolBar(tr("Debug"));
-    demoTool = addToolBar(tr("demo"));
 
     fileTool->addAction(fileNewAction);
     fileTool->addAction(fileOpenAction);
@@ -135,8 +127,6 @@ void MainWindow::createToolBars() {
 
     debugTool->addAction(parseAction);
     debugTool->addAction(debugAction);
-
-    demoTool->addAction(helloAction);
 }
 
 /**
@@ -145,22 +135,23 @@ void MainWindow::createToolBars() {
 void MainWindow::slotNewFile() {
     textEdit->clear();           /// Clear the text
     textEdit->setHidden(false);  /// Display the text.
+    fileName = "";               /// Reset fileName
 }
 
 /**
  * @brief Open action will open the saved files
  */
 void MainWindow::slotOpenFile() {
-    fileName = QFileDialog::getOpenFileName(this, tr("Open File"), tr(""),
+    QString tempFileName = QFileDialog::getOpenFileName(this, tr("Open File"), tr(""),
                                             "SPICE Netlist (*.sp)");
 
-    // qDebug() << fileName;
+    // qDebug() << tempFileName;
 
-    /// If the dialog is directly closed, the filename will be null.
-    if (fileName == "" || fileName == "./") {
+    /// If the dialog is directly closed, the tempFileName will be null.
+    if (tempFileName == "" || tempFileName == "./") {
         return;
     } else {
-        QFile file(fileName);
+        QFile file(tempFileName);
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
             QMessageBox::warning(this, tr("Error"), tr("Failed to open file!"));
             return;
@@ -172,6 +163,7 @@ void MainWindow::slotOpenFile() {
                 QTextStream textStream(&file);  // Use QTextStream to load text.
                 textEdit->setPlainText(textStream.readAll());
                 file.close();
+                fileName = tempFileName; // Update fileName only after successful file read
             }
         }
     }
@@ -225,18 +217,6 @@ void MainWindow::slotSaveFile() {
             file.close();
         }
     }
-}
-
-void MainWindow::slotHelloWorld() {
-    QLabel* label = new QLabel();
-    label->setText("Hello World!");
-    label->setAlignment(Qt::AlignCenter);
-    label->setStyleSheet("font:30px;color:black;background-color:yellow");
-    label->resize(400, 300);
-    label->setAttribute(Qt::WA_DeleteOnClose);
-    label->show();  // label should be shown to be seen.
-
-    qDebug() << "slotHelloWorld()";
 }
 
 void MainWindow::slotSimulate() {

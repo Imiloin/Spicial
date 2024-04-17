@@ -41,10 +41,6 @@ public slots:
     void slotDebug();
     
 
-    /** @brief slot of hello world demo */
-    void slotHelloWorld();
-    
-
 private:
     QMenu    *fileMenu;
     QMenu    *editMenu;
@@ -55,7 +51,6 @@ private:
     QToolBar *editTool;
     QToolBar *simulateTool;
     QToolBar *debugTool;
-    QToolBar *demoTool;
 
     QAction *fileOpenAction;
     QAction *fileNewAction;
@@ -68,8 +63,6 @@ private:
 
     QAction *parseAction;
     QAction *debugAction;
-
-    QAction *helloAction; // hello world demo
 
     QTextEdit *textEdit;
 
