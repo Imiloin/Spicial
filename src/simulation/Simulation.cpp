@@ -479,9 +479,10 @@ arma::vec TranSimulation::tranBackEuler(double time,
 
 void TranSimulation::runSimulation() {
     qDebug() << "TranSimulation::runSimulation()";
-    double h = analysis.step;  // 为简化处理，使用恒定步长
-    double time = 0;           // 当前时间点
-    arma::vec x;               // 保存当前时间点的解
+    int step_split = 8;  // 步长分割数，用于计算精度
+    double h = analysis.step / step_split;  // 为简化处理，使用恒定步长
+    double time = 0;                        // 当前时间点
+    arma::vec x;                            // 保存当前时间点的解
 
     if (MNA_TRAN_T == nullptr || RHS_TRAN_T == nullptr) {
         qDebug() << "generateTranMNA() failed.";
@@ -623,7 +624,11 @@ void TranSimulation::runSimulation() {
     // std::cout << (time < tstop) << std::endl;
     for (time += h; time <= tstop; time += tstep) {
         sim_value = time;
-        x = tranBackEuler(time, h, x);
+        double inner_time = time;
+        for (int i = 0; i < step_split; i++) {
+            x = tranBackEuler(inner_time, h, x);
+            inner_time += h;
+        }
         sim_results.push_back(x);  // time 的解
         // std::cout << "time: " << time << "\t";
         // x.print("TranSimulation() x:");

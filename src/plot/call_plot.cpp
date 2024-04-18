@@ -30,6 +30,9 @@ void callPlot(ColumnData xdata,
         // Set color from color cycle
         QColor color = colorCycle.at(i % colorCycle.size());
         customPlot->graph(i)->setPen(QPen(color));
+
+        // Enable adaptive sampling
+        customPlot->graph(i)->setAdaptiveSampling(true);
     }
 
     // Configure axes
