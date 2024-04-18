@@ -867,7 +867,7 @@ namespace yy
 	void Parser::error(const location_type& loc, const std::string &s)
 	{
         std::cerr << "-------------------" << "Parse failed" << "-------------------" << std::endl;
-        std::cerr << "Error: Parsing failed in line " << loc.begin.line+1 << ", column " << loc.begin.column << ", " << s << std::endl;  // +1是因为parser从第1行开始计数，不含标题行
+        std::cerr << "Error: Parsing failed in line " << loc.begin.line << ", column " << loc.begin.column << ", " << s << std::endl;
 
         if (first_token_of_current_line != NULL) {
             std::cerr << "First token of the line: " << first_token_of_current_line << std::endl;

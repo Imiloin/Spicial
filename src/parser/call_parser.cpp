@@ -28,6 +28,9 @@ Netlist *callNetlistParser(const char* fileName) {
     title.erase(title.find_last_not_of("\n\r") + 1);  // 去除末尾的换行符
     printf("[Title] %s\n", title.c_str());
 
+    // move the pointer back to the end of the first line
+    fseek(yyin, -1, SEEK_CUR);
+
     // create netlist instance
     Netlist *netlist = new Netlist(fileName, title);
 

@@ -26,7 +26,7 @@ int Nodes::getNodeIndex(const std::string& name) const {  // 获取节点的编�
     if (it == nodes.end()) {
         qDebug() << "getNodeIndex(" << name.c_str() << ")";
         printf("Node not found\n");
-        return -1;
+        return 0;
     }
     return std::distance(nodes.begin(), it);
 }
@@ -34,17 +34,17 @@ int Nodes::getNodeIndex(const std::string& name) const {  // 获取节点的编�
 int Nodes::getNodeIndexExgnd(const std::string& name) const {
     if (name == "0") {
         qDebug() << "getNodeIndexExgnd() trying to get ground node";
-        return -1;
+        return 0;
     }
     if (nodes.size() < 2) {
         printf("No nodes excluding ground\n");
-        return -1;
+        return 0;
     }
     auto it = std::find(nodes.begin() + 1, nodes.end(), name);
     if (it == nodes.end()) {
         qDebug() << "getNodeIndexExgnd(" << name.c_str() << ")";
         printf("Node not found\n");
-        return -1;
+        return 0;
     }
     return std::distance(nodes.begin() + 1, it);
 }
@@ -59,7 +59,7 @@ int Nodes::getNodeNumExgnd() const {
 
 void Nodes::printNodes() const {
     // print {node: index}
-    int node_num = getNodeNum();
+    long unsigned int node_num = getNodeNum();
     std::cout << std::endl;
     std::cout << "-------------------------------" << std::endl
               << "Nodes: {name: index}" << std::endl;
