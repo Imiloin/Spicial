@@ -1,5 +1,6 @@
 # VSCode
-.vscode/
+.vscode/*
+!.vscode/c_cpp_properties.json
 *.code-workspace
 
 # TEMP
